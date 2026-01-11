@@ -1,0 +1,415 @@
+<Window x:Class="StreamVision.Views.OnboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="StreamVision"
+        Height="700" Width="900"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <!-- Selection Card Style -->
+        <Style x:Key="SelectionCard" TargetType="Border">
+            <Setter Property="Background" Value="#18181B"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="24,20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#27272A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Selected Card Style -->
+        <Style x:Key="SelectedCard" TargetType="Border">
+            <Setter Property="Background" Value="#1E3A5F"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="24,20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="#60A5FA"/>
+        </Style>
+
+        <!-- Continue Button -->
+        <Style x:Key="ContinueButton" TargetType="Button">
+            <Setter Property="Background" Value="#60A5FA"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="48,16"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="25" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3B82F6"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#3F3F46"/>
+                                <Setter Property="Foreground" Value="#71717A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Skip Button -->
+        <Style x:Key="SkipButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#A1A1AA"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="24,12"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#FAFAFA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Container with rounded corners -->
+    <Border Background="#09090B" CornerRadius="20" BorderBrush="#27272A" BorderThickness="1">
+        <Grid>
+            <!-- Window Controls -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0">
+                <Button Style="{StaticResource IconButton}" Click="Close_Click" ToolTip="Fermer" Width="36" Height="36">
+                    <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#A1A1AA"/>
+                </Button>
+            </StackPanel>
+
+            <!-- Step Indicators -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,24,0,0">
+                <Ellipse x:Name="Step1Dot" Width="8" Height="8" Fill="#60A5FA" Margin="4,0"/>
+                <Ellipse x:Name="Step2Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
+                <Ellipse x:Name="Step3Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
+                <Ellipse x:Name="Step4Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
+                <Ellipse x:Name="Step5Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
+            </StackPanel>
+
+            <!-- Content Area -->
+            <Grid Margin="60,70,60,40">
+                <!-- Step 1: Welcome -->
+                <Grid x:Name="Step1Panel" Visibility="Visible">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <!-- Logo/Icon -->
+                        <Border Width="100" Height="100" CornerRadius="24" Margin="0,0,0,40">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#60A5FA" Offset="0"/>
+                                    <GradientStop Color="#A78BFA" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="48"
+                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <TextBlock Text="Bienvenue sur StreamVision"
+                                   FontSize="36" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+
+                        <TextBlock Text="Configurons votre expérience en quelques secondes"
+                                   FontSize="18" Foreground="#A1A1AA" Margin="0,16,0,0"
+                                   HorizontalAlignment="Center"/>
+
+                        <TextBlock Text="Nous allons personnaliser l'application selon vos goûts pour vous montrer uniquement le contenu qui vous intéresse."
+                                   FontSize="14" Foreground="#71717A" Margin="0,24,0,48"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
+                                   MaxWidth="500"/>
+
+                        <Button Style="{StaticResource ContinueButton}" Content="Commencer" Click="Next_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 2: Language Selection -->
+                <Grid x:Name="Step2Panel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Quelle langue regardez-vous ?"
+                                   FontSize="32" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Sélectionnez une ou plusieurs langues"
+                                   FontSize="16" Foreground="#A1A1AA" Margin="0,12,0,0"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Language Grid -->
+                    <UniformGrid Grid.Row="1" Columns="4" Rows="2" Margin="0,40,0,40">
+                        <Border x:Name="LangFR" Style="{StaticResource SelectedCard}" Margin="8" MouseDown="Language_Click" Tag="French">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="FR" FontSize="28" FontWeight="Bold" Foreground="#60A5FA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Français" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangEN" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="English">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="EN" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="English" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangES" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="Spanish">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="ES" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Español" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangDE" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="German">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="DE" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Deutsch" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangIT" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="Italian">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="IT" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Italiano" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangPT" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="Portuguese">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="PT" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Português" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangAR" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="Arabic">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="AR" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="العربية" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="LangTR" Style="{StaticResource SelectionCard}" Margin="8" MouseDown="Language_Click" Tag="Turkish">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="TR" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Türkçe" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource SkipButton}" Content="Retour" Click="Back_Click" Margin="0,0,24,0"/>
+                        <Button x:Name="Step2NextBtn" Style="{StaticResource ContinueButton}" Content="Continuer" Click="Next_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 3: Content Type Selection -->
+                <Grid x:Name="Step3Panel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Que souhaitez-vous regarder ?"
+                                   FontSize="32" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Sélectionnez les types de contenu qui vous intéressent"
+                                   FontSize="16" Foreground="#A1A1AA" Margin="0,12,0,0"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Content Type Cards -->
+                    <UniformGrid Grid.Row="1" Columns="3" Margin="0,40,0,40" VerticalAlignment="Center">
+                        <Border x:Name="TypeMovies" Style="{StaticResource SelectedCard}" Margin="12" MouseDown="ContentType_Click" Tag="Movies" Height="200">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Border Width="72" Height="72" CornerRadius="18" Background="#1E3A5F" Margin="0,0,0,16">
+                                    <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                                               Foreground="#60A5FA" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Films" FontSize="20" FontWeight="SemiBold" Foreground="#FAFAFA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Longs métrages, documentaires" FontSize="13" Foreground="#A1A1AA"
+                                           Margin="0,6,0,0" HorizontalAlignment="Center" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="TypeSeries" Style="{StaticResource SelectedCard}" Margin="12" MouseDown="ContentType_Click" Tag="Series" Height="200">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Border Width="72" Height="72" CornerRadius="18" Background="#1E3A5F" Margin="0,0,0,16">
+                                    <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                                               Foreground="#60A5FA" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Séries" FontSize="20" FontWeight="SemiBold" Foreground="#FAFAFA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Séries TV, saisons, épisodes" FontSize="13" Foreground="#A1A1AA"
+                                           Margin="0,6,0,0" HorizontalAlignment="Center" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="TypeLive" Style="{StaticResource SelectedCard}" Margin="12" MouseDown="ContentType_Click" Tag="Live" Height="200">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Border Width="72" Height="72" CornerRadius="18" Background="#1E3A5F" Margin="0,0,0,16">
+                                    <TextBlock Text="&#xE7F5;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                                               Foreground="#60A5FA" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="TV en direct" FontSize="20" FontWeight="SemiBold" Foreground="#FAFAFA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Chaînes live, sport, news" FontSize="13" Foreground="#A1A1AA"
+                                           Margin="0,6,0,0" HorizontalAlignment="Center" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource SkipButton}" Content="Retour" Click="Back_Click" Margin="0,0,24,0"/>
+                        <Button x:Name="Step3NextBtn" Style="{StaticResource ContinueButton}" Content="Continuer" Click="Next_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 4: Anime Preferences -->
+                <Grid x:Name="Step4Panel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Regardez-vous des animés ?"
+                                   FontSize="32" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Pour les animés, nous pouvons filtrer par version audio"
+                                   FontSize="16" Foreground="#A1A1AA" Margin="0,12,0,0"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <!-- Anime Toggle -->
+                        <Border x:Name="AnimeToggle" Style="{StaticResource SelectedCard}" Margin="0,0,0,24"
+                                MouseDown="AnimeToggle_Click" Tag="Anime" MinWidth="400">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="28"
+                                           Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Oui, je regarde des animés" FontSize="18" FontWeight="SemiBold" Foreground="#FAFAFA"/>
+                                    <TextBlock Text="Anime, manga adaptations, OAV..." FontSize="13" Foreground="#A1A1AA" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- VOSTFR/VF Selection (shown when anime is selected) -->
+                        <StackPanel x:Name="AnimeVersionPanel" Visibility="Visible" Margin="0,20,0,0">
+                            <TextBlock Text="Quelle version préférez-vous ?"
+                                       FontSize="16" Foreground="#A1A1AA" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Border x:Name="AnimeVOSTFR" Style="{StaticResource SelectedCard}" Margin="8"
+                                        MouseDown="AnimeVersion_Click" Tag="VOSTFR" MinWidth="180">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="VOSTFR" FontSize="22" FontWeight="Bold" Foreground="#60A5FA" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Sous-titré" FontSize="13" Foreground="#A1A1AA" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Audio original japonais" FontSize="11" Foreground="#71717A" Margin="0,2,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border x:Name="AnimeVF" Style="{StaticResource SelectionCard}" Margin="8"
+                                        MouseDown="AnimeVersion_Click" Tag="VF" MinWidth="180">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="VF" FontSize="22" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Doublé" FontSize="13" Foreground="#A1A1AA" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Audio dans votre langue" FontSize="11" Foreground="#71717A" Margin="0,2,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border x:Name="AnimeBoth" Style="{StaticResource SelectionCard}" Margin="8"
+                                        MouseDown="AnimeVersion_Click" Tag="Both" MinWidth="180">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="Les deux" FontSize="22" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Tout afficher" FontSize="13" Foreground="#A1A1AA" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="VOSTFR et VF" FontSize="11" Foreground="#71717A" Margin="0,2,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource SkipButton}" Content="Retour" Click="Back_Click" Margin="0,0,24,0"/>
+                        <Button Style="{StaticResource SkipButton}" Content="Je ne regarde pas d'animés" Click="SkipAnime_Click" Margin="0,0,24,0"/>
+                        <Button Style="{StaticResource ContinueButton}" Content="Continuer" Click="Next_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 5: Confirmation -->
+                <Grid x:Name="Step5Panel" Visibility="Collapsed">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <!-- Success Icon -->
+                        <Border Width="100" Height="100" CornerRadius="50" Background="#1A4D3E" Margin="0,0,0,40">
+                            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="48"
+                                       Foreground="#34D399" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <TextBlock Text="Parfait !"
+                                   FontSize="36" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+
+                        <TextBlock x:Name="SummaryText"
+                                   Text="Votre expérience est personnalisée"
+                                   FontSize="18" Foreground="#A1A1AA" Margin="0,16,0,0"
+                                   HorizontalAlignment="Center" TextAlignment="Center"/>
+
+                        <Border Background="#18181B" CornerRadius="16" Padding="32,24" Margin="0,32,0,48" MinWidth="400">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                               Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock x:Name="LangSummary" Text="Langues : Français"
+                                               FontSize="15" Foreground="#FAFAFA"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                               Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock x:Name="ContentSummary" Text="Contenu : Films, Séries, TV en direct"
+                                               FontSize="15" Foreground="#FAFAFA"/>
+                                </StackPanel>
+                                <StackPanel x:Name="AnimeSummaryPanel" Orientation="Horizontal" Visibility="Visible">
+                                    <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                               Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock x:Name="AnimeSummary" Text="Animés : VOSTFR préféré"
+                                               FontSize="15" Foreground="#FAFAFA"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Vous pourrez modifier ces préférences à tout moment dans les paramètres."
+                                   FontSize="13" Foreground="#71717A" Margin="0,0,0,32"
+                                   HorizontalAlignment="Center"/>
+
+                        <Button Style="{StaticResource ContinueButton}" Content="Commencer à regarder" Click="Finish_Click" Padding="48,18"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,241 @@
+<Window x:Class="StreamVision.Views.MultiViewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:StreamVision"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+        Title="StreamVision - Multi-View"
+        Height="800" Width="1200"
+        WindowStyle="None"
+        Background="#0A0A0F"
+        WindowStartupLocation="CenterScreen"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <Style x:Key="ViewBtn" TargetType="Button">
+            <Setter Property="Background" Value="#252542"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A6A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActiveViewBtn" TargetType="Button">
+            <Setter Property="Background" Value="#E94560"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="60"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <Border Grid.Row="0" Background="#16213E" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
+                    <TextBlock Text="Multi-View" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock x:Name="LayoutText" Text=" - 2x2" FontSize="14" Foreground="#888" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,8,0">
+                    <Button Style="{StaticResource ViewBtn}" Click="Minimize_Click" Width="32" Height="28">
+                        <TextBlock Text="─" FontSize="10"/>
+                    </Button>
+                    <Button Style="{StaticResource ViewBtn}" Click="Maximize_Click" Width="32" Height="28" Margin="4,0">
+                        <TextBlock Text="□" FontSize="12"/>
+                    </Button>
+                    <Button Style="{StaticResource ViewBtn}" Click="Close_Click" Width="32" Height="28">
+                        <TextBlock Text="✕" FontSize="10"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Video Grid -->
+        <Grid x:Name="VideoGrid" Grid.Row="1" Background="#0A0A0F">
+            <!-- 2x2 Grid by default -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Video Cell 1 -->
+            <Border x:Name="Cell1" Grid.Row="0" Grid.Column="0" Background="#1A1A2E"
+                    BorderBrush="#333" BorderThickness="1" Margin="2"
+                    MouseLeftButtonDown="Cell_Click" Tag="1">
+                <Grid>
+                    <vlc:VideoView x:Name="VideoView1"/>
+                    <Border Background="#80000000" VerticalAlignment="Bottom" Padding="8,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Label1" Text="Cliquez pour ajouter" Foreground="#888" FontSize="12"/>
+                            <TextBlock x:Name="Audio1" Text=" 🔊" Foreground="#10B981" FontSize="12" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Border>
+                    <Border CornerRadius="4" Background="#E94560" Padding="6,2"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
+                            Visibility="{Binding ElementName=Label1, Path=Text, Converter={x:Static local:Converters.HasChannelToVisibility}}">
+                        <TextBlock Text="1" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Video Cell 2 -->
+            <Border x:Name="Cell2" Grid.Row="0" Grid.Column="1" Background="#1A1A2E"
+                    BorderBrush="#333" BorderThickness="1" Margin="2"
+                    MouseLeftButtonDown="Cell_Click" Tag="2">
+                <Grid>
+                    <vlc:VideoView x:Name="VideoView2"/>
+                    <Border Background="#80000000" VerticalAlignment="Bottom" Padding="8,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Label2" Text="Cliquez pour ajouter" Foreground="#888" FontSize="12"/>
+                            <TextBlock x:Name="Audio2" Text=" 🔊" Foreground="#10B981" FontSize="12" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Border>
+                    <Border CornerRadius="4" Background="#E94560" Padding="6,2"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
+                            Visibility="{Binding ElementName=Label2, Path=Text, Converter={x:Static local:Converters.HasChannelToVisibility}}">
+                        <TextBlock Text="2" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Video Cell 3 -->
+            <Border x:Name="Cell3" Grid.Row="1" Grid.Column="0" Background="#1A1A2E"
+                    BorderBrush="#333" BorderThickness="1" Margin="2"
+                    MouseLeftButtonDown="Cell_Click" Tag="3">
+                <Grid>
+                    <vlc:VideoView x:Name="VideoView3"/>
+                    <Border Background="#80000000" VerticalAlignment="Bottom" Padding="8,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Label3" Text="Cliquez pour ajouter" Foreground="#888" FontSize="12"/>
+                            <TextBlock x:Name="Audio3" Text=" 🔊" Foreground="#10B981" FontSize="12" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Border>
+                    <Border CornerRadius="4" Background="#E94560" Padding="6,2"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
+                            Visibility="{Binding ElementName=Label3, Path=Text, Converter={x:Static local:Converters.HasChannelToVisibility}}">
+                        <TextBlock Text="3" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Video Cell 4 -->
+            <Border x:Name="Cell4" Grid.Row="1" Grid.Column="1" Background="#1A1A2E"
+                    BorderBrush="#333" BorderThickness="1" Margin="2"
+                    MouseLeftButtonDown="Cell_Click" Tag="4">
+                <Grid>
+                    <vlc:VideoView x:Name="VideoView4"/>
+                    <Border Background="#80000000" VerticalAlignment="Bottom" Padding="8,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Label4" Text="Cliquez pour ajouter" Foreground="#888" FontSize="12"/>
+                            <TextBlock x:Name="Audio4" Text=" 🔊" Foreground="#10B981" FontSize="12" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Border>
+                    <Border CornerRadius="4" Background="#E94560" Padding="6,2"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
+                            Visibility="{Binding ElementName=Label4, Path=Text, Converter={x:Static local:Converters.HasChannelToVisibility}}">
+                        <TextBlock Text="4" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Controls -->
+        <Border Grid.Row="2" Background="#16213E" Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Layout Buttons -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="Layout:" Foreground="#888" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button x:Name="Layout2x1Btn" Style="{StaticResource ViewBtn}" Click="Layout_Click" Tag="2x1" ToolTip="1x2 (2 horizontal)">
+                        <Grid Width="20" Height="14">
+                            <Border Background="#666" Width="9" Height="14" HorizontalAlignment="Left"/>
+                            <Border Background="#666" Width="9" Height="14" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="Layout2x2Btn" Style="{StaticResource ActiveViewBtn}" Click="Layout_Click" Tag="2x2" ToolTip="2x2 (4 écrans)" Margin="8,0">
+                        <Grid Width="20" Height="16">
+                            <Border Background="White" Width="9" Height="7" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                            <Border Background="White" Width="9" Height="7" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                            <Border Background="White" Width="9" Height="7" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                            <Border Background="White" Width="9" Height="7" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="Layout1x2Btn" Style="{StaticResource ViewBtn}" Click="Layout_Click" Tag="1x2" ToolTip="2x1 (2 vertical)">
+                        <Grid Width="16" Height="20">
+                            <Border Background="#666" Width="16" Height="9" VerticalAlignment="Top"/>
+                            <Border Background="#666" Width="16" Height="9" VerticalAlignment="Bottom"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="LayoutPipBtn" Style="{StaticResource ViewBtn}" Click="Layout_Click" Tag="PIP" ToolTip="PIP (1+1)" Margin="8,0">
+                        <Grid Width="20" Height="16">
+                            <Border Background="#666" Width="20" Height="16"/>
+                            <Border Background="White" Width="8" Height="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="2"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <!-- Info -->
+                <TextBlock Grid.Column="1" Text="Cliquez sur un écran pour sélectionner une chaîne • 1-4 pour changer l'audio"
+                           Foreground="#666" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Style="{StaticResource ViewBtn}" Click="StopAll_Click" ToolTip="Arrêter tout">
+                        <TextBlock Text="⏹" FontSize="14"/>
+                    </Button>
+                    <Button Style="{StaticResource ViewBtn}" Click="Fullscreen_Click" ToolTip="Plein écran" Margin="8,0">
+                        <TextBlock Text="⛶" FontSize="16"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

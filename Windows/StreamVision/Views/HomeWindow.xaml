@@ -1,0 +1,1152 @@
+<Window x:Class="StreamVision.Views.HomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:StreamVision"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+        Title="StreamVision"
+        Height="900" Width="1600"
+        MinHeight="720" MinWidth="1280"
+        WindowStyle="None"
+        Background="#09090B"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <!-- ═══════════════════════════════════════════════════════════════
+             PALETTE PREMIUM - Style Apple/Futuriste Élégant
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- Backgrounds - Noir profond raffiné -->
+        <Color x:Key="BgDark">#09090B</Color>
+        <Color x:Key="BgPanel">#18181B</Color>
+        <Color x:Key="BgCard">#27272A</Color>
+        <Color x:Key="BgHover">#3F3F46</Color>
+
+        <!-- Accent - Bleu glacier élégant -->
+        <Color x:Key="AccentBlue">#60A5FA</Color>
+        <Color x:Key="AccentLight">#93C5FD</Color>
+        <Color x:Key="AccentDark">#3B82F6</Color>
+
+        <!-- Secondary - Violet subtil -->
+        <Color x:Key="AccentPurple">#A78BFA</Color>
+        <Color x:Key="PurpleLight">#C4B5FD</Color>
+
+        <!-- Status -->
+        <Color x:Key="AccentGreen">#34D399</Color>
+        <Color x:Key="AccentWarning">#FBBF24</Color>
+        <Color x:Key="AccentError">#F87171</Color>
+
+        <!-- Text -->
+        <Color x:Key="TextPrimary">#FAFAFA</Color>
+        <Color x:Key="TextSecondary">#A1A1AA</Color>
+        <Color x:Key="TextMuted">#71717A</Color>
+
+        <!-- Brushes -->
+        <SolidColorBrush x:Key="BgDarkBrush" Color="{StaticResource BgDark}"/>
+        <SolidColorBrush x:Key="BgPanelBrush" Color="{StaticResource BgPanel}"/>
+        <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCard}"/>
+        <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlue}"/>
+        <SolidColorBrush x:Key="AccentPurpleBrush" Color="{StaticResource AccentPurple}"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}"/>
+
+        <!-- Premium Background Gradient -->
+        <LinearGradientBrush x:Key="BgGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#09090B" Offset="0"/>
+            <GradientStop Color="#0F0F14" Offset="0.5"/>
+            <GradientStop Color="#12121A" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Premium Accent Gradient -->
+        <LinearGradientBrush x:Key="PremiumGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#60A5FA" Offset="0"/>
+            <GradientStop Color="#A78BFA" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Glass Effect -->
+        <LinearGradientBrush x:Key="GlassGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#10FFFFFF" Offset="0"/>
+            <GradientStop Color="#05FFFFFF" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             BUTTON STYLES - Élégant et Minimaliste
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- Category Navigation Button -->
+        <Style x:Key="CategoryBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderThickness="0,0,0,0" BorderBrush="Transparent" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BgCardBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Primary Action Button - Apple Style -->
+        <Style x:Key="ActionBtn" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBlueBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="24,14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="22" Padding="{TemplateBinding Padding}">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="scale" ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <Border.RenderTransformOrigin>0.5,0.5</Border.RenderTransformOrigin>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <SolidColorBrush Color="{StaticResource AccentLight}"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Ghost Button - Subtle Glass Effect -->
+        <Style x:Key="GhostBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BgCardBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Icon Button - Minimal -->
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BgCardBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Media Card - Apple Style with Subtle Lift -->
+        <Style x:Key="MediaCard" TargetType="Border">
+            <Setter Property="Width" Value="200"/>
+            <Setter Property="Height" Value="300"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                        <TranslateTransform Y="0"/>
+                    </TransformGroup>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleX"
+                                                 To="1.02" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <QuadraticEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleY"
+                                                 To="1.02" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <QuadraticEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[1].Y"
+                                                 To="-4" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <QuadraticEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleX"
+                                                 To="1" Duration="0:0:0.15">
+                                    <DoubleAnimation.EasingFunction>
+                                        <QuadraticEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleY"
+                                                 To="1" Duration="0:0:0.15">
+                                    <DoubleAnimation.EasingFunction>
+                                        <QuadraticEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[1].Y"
+                                                 To="0" Duration="0:0:0.15">
+                                    <DoubleAnimation.EasingFunction>
+                                        <QuadraticEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Accent Button (for dialogs) -->
+        <Style x:Key="AccentBtn" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBlueBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <SolidColorBrush Color="{StaticResource AccentLight}"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Search Box - Glass Effect -->
+        <Style x:Key="SearchBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="CaretBrush" Value="{StaticResource AccentBlueBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="14,0,8,0"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}"/>
+                                <ScrollViewer x:Name="PART_ContentHost" Grid.Column="1"
+                                              VerticalAlignment="Center" Margin="0,0,14,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="0" Background="{StaticResource BgGradient}">
+        <Grid>
+            <!-- Full Width Layout - No Sidebar -->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="32"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Drag Area (invisible title bar) -->
+                <Border Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Drag zone -->
+                        <Border Grid.Column="0" Background="Transparent"/>
+
+                        <!-- Window Controls -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4,12,0">
+                            <Button Style="{StaticResource IconBtn}" Click="Minimize_Click" Width="32" Height="24">
+                                <TextBlock Text="─" FontSize="10"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="Maximize_Click" Width="32" Height="24">
+                                <TextBlock Text="□" FontSize="12"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="Close_Click" Width="32" Height="24">
+                                <TextBlock Text="✕" FontSize="10"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Top Bar with Navigation - Apple Style Glass -->
+                <Border Grid.Row="1" Padding="48,16,48,24">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#0809090B" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Logo - Clean Typography -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock FontSize="26" FontWeight="Light" VerticalAlignment="Center">
+                                <Run Text="Stream" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </TextBlock>
+                            <TextBlock Text="Vision" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource AccentBlueBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Navigation Tabs - Pill Style -->
+                        <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="#0CFFFFFF" CornerRadius="25" Padding="6">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource GhostBtn}" Margin="2,0"
+                                        Command="{Binding ChangeViewCommand}" CommandParameter="Home">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Accueil" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource GhostBtn}" Margin="2,0"
+                                        Command="{Binding ChangeViewCommand}" CommandParameter="Live">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="TV Direct" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource GhostBtn}" Margin="2,0"
+                                        Command="{Binding ChangeViewCommand}" CommandParameter="Movies">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Films" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource GhostBtn}" Margin="2,0"
+                                        Command="{Binding ChangeViewCommand}" CommandParameter="Series">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Séries" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource GhostBtn}" Margin="2,0"
+                                        Command="{Binding ChangeViewCommand}" CommandParameter="MyList">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Favoris" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Search & Actions - Minimal -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBox Style="{StaticResource SearchBox}" Width="220"
+                                     Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Style="{StaticResource IconBtn}" Click="AddPlaylist_Click" Margin="12,0,0,0" ToolTip="Ajouter playlist">
+                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="ShowEpg_Click" Margin="4,0,0,0" ToolTip="Guide TV">
+                                <TextBlock Text="&#xE7C4;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="ShowCatchup_Click" Margin="4,0,0,0" ToolTip="Replay">
+                                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="ShowMultiView_Click" Margin="4,0,0,0" ToolTip="Multi-écrans">
+                                <TextBlock Text="&#xE8A9;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="ShowPlayerSettings_Click" Margin="4,0,0,0" ToolTip="Paramètres lecteur">
+                                <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Click="ShowSettings_Click" Margin="4,0,0,0" ToolTip="Paramètres">
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Content - Full Width Vertical Scroll -->
+                <ScrollViewer x:Name="MainScrollViewer" Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="72,0">
+                    <StackPanel>
+                        <!-- Status Message -->
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="{StaticResource TextMutedBrush}"
+                                   Margin="0,8,0,8" HorizontalAlignment="Center" FontWeight="Light"/>
+
+                        <!-- Loading Indicator -->
+                        <TextBlock FontSize="15" Foreground="{StaticResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" Margin="0,40,0,40" FontWeight="Light"
+                                   Visibility="{Binding IsLoading, Converter={x:Static local:Converters.BoolToVisibility}}">
+                            Chargement...
+                        </TextBlock>
+
+                        <!-- Welcome Banner - Apple Glass Design -->
+                        <Border Margin="0,16,0,56" Padding="56,48" CornerRadius="28"
+                                Visibility="{Binding IsFirstLaunch, Converter={x:Static local:Converters.BoolToVisibility}}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#12FFFFFF" Offset="0"/>
+                                    <GradientStop Color="#08FFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <!-- Subtle border -->
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#18FFFFFF" Offset="0"/>
+                                    <GradientStop Color="#08FFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.BorderThickness>1</Border.BorderThickness>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" MaxWidth="600">
+                                    <TextBlock FontSize="44" FontWeight="Light" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4">
+                                        Bienvenue.
+                                    </TextBlock>
+                                    <TextBlock FontSize="17" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,16,0,32" LineHeight="28" FontWeight="Light">
+                                        Connectez votre playlist IPTV pour commencer à regarder vos contenus préférés en streaming.
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Background="#0AFFFFFF" CornerRadius="20" Padding="16,10" Margin="0,0,12,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="M3U / M3U8" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Background="#0AFFFFFF" CornerRadius="20" Padding="16,10" Margin="0,0,12,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="Xtream Codes" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Background="#0AFFFFFF" CornerRadius="20" Padding="16,10">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE703;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="Stalker Portal" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Button Grid.Column="1" Style="{StaticResource ActionBtn}"
+                                        Click="AddPlaylist_Click" VerticalAlignment="Center" Margin="64,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Ajouter une playlist" FontSize="14" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Featured Item - Premium Hero Card -->
+                        <Grid Margin="0,0,0,50" Height="420"
+                              Visibility="{Binding FeaturedItem, Converter={x:Static local:Converters.NotNullToVisibility}}">
+                            <Border CornerRadius="24">
+                                <Border.Background>
+                                    <ImageBrush ImageSource="{Binding FeaturedItem.BackdropUrl}"
+                                                Stretch="UniformToFill" Opacity="0.5"/>
+                                </Border.Background>
+                            </Border>
+
+                            <!-- Premium Gradient Overlay -->
+                            <Border CornerRadius="24">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#F009090B" Offset="0"/>
+                                        <GradientStop Color="#A009090B" Offset="0.5"/>
+                                        <GradientStop Color="#2009090B" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+
+                            <!-- Subtle Border Glow -->
+                            <Border CornerRadius="24" BorderThickness="1">
+                                <Border.BorderBrush>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#1560A5FA" Offset="0"/>
+                                        <GradientStop Color="#15A78BFA" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.BorderBrush>
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#60A5FA" BlurRadius="50" ShadowDepth="0" Opacity="0.1"/>
+                                </Border.Effect>
+                            </Border>
+
+                            <!-- Content -->
+                            <Grid Margin="56">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel VerticalAlignment="Center" MaxWidth="550">
+                                    <!-- Category Badge -->
+                                    <Border CornerRadius="8" Padding="12,6" HorizontalAlignment="Left" Margin="0,0,0,20">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#60A5FA" Offset="0"/>
+                                                <GradientStop Color="#A78BFA" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <TextBlock Text="{Binding FeaturedItem.GroupTitle}" FontSize="11"
+                                                   FontWeight="SemiBold" Foreground="White"/>
+                                    </Border>
+
+                                    <!-- Title -->
+                                    <TextBlock Text="{Binding FeaturedItem.Name}" FontSize="40" FontWeight="Bold"
+                                               Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap"
+                                               LineHeight="48"/>
+
+                                    <!-- Meta -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                        <TextBlock Text="{Binding FeaturedItem.Year}" FontSize="14"
+                                                   Foreground="{StaticResource AccentBlueBrush}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding FeaturedItem.RuntimeDisplay}" FontSize="14"
+                                                   Foreground="{StaticResource TextMutedBrush}" Margin="20,0,0,0"/>
+                                        <Border Background="{StaticResource BgCardBrush}" CornerRadius="8" Padding="10,5" Margin="20,0,0,0"
+                                                Visibility="{Binding FeaturedItem.Rating, Converter={x:Static local:Converters.RatingToVisibility}}">
+                                            <TextBlock FontSize="12" Foreground="{StaticResource TextPrimaryBrush}">
+                                                <Run Text="★ "/><Run Text="{Binding FeaturedItem.Rating, StringFormat='{}{0:F1}'}"/>
+                                            </TextBlock>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Description -->
+                                    <TextBlock Text="{Binding FeaturedItem.Overview}" FontSize="14"
+                                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                               MaxHeight="65" LineHeight="22"
+                                               TextTrimming="CharacterEllipsis" Margin="0,20,0,0"/>
+
+                                    <!-- Actions -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,28,0,0">
+                                        <Button Style="{StaticResource ActionBtn}"
+                                                Command="{Binding PlayItemCommand}"
+                                                CommandParameter="{Binding FeaturedItem}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="▶" FontSize="12" Margin="0,0,10,0"/>
+                                                <TextBlock Text="Lecture"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource GhostBtn}" Margin="12,0,0,0"
+                                                Command="{Binding ToggleFavoriteCommand}"
+                                                CommandParameter="{Binding FeaturedItem}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="♡" FontSize="14" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Favoris"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource GhostBtn}" Margin="12,0,0,0" Click="ShowInfo_Click">
+                                            <TextBlock Text="Plus d'infos"/>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Poster on right - Premium Shadow -->
+                                <Border Grid.Column="1" Width="200" Height="300" CornerRadius="16"
+                                        VerticalAlignment="Center" Margin="48,0,0,0">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding FeaturedItem.PosterUrl}" Stretch="UniformToFill"/>
+                                    </Border.Background>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#60A5FA" BlurRadius="40" ShadowDepth="0" Opacity="0.25"/>
+                                    </Border.Effect>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Content Rows - Apple Style -->
+                        <ItemsControl ItemsSource="{Binding ContentRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,56">
+                                        <!-- Row Title - Apple Typography -->
+                                        <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,24">
+                                            <Run Text="{Binding Title}"/>
+                                        </TextBlock>
+
+                                        <!-- Horizontal Cards -->
+                                        <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                                                      VerticalScrollBarVisibility="Disabled"
+                                                      PreviewMouseWheel="Row_PreviewMouseWheel">
+                                            <ItemsControl ItemsSource="{Binding Items}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Style="{StaticResource MediaCard}" Margin="0,0,18,0"
+                                                                MouseLeftButtonUp="MediaCard_Click" Tag="{Binding}">
+                                                            <Border.Effect>
+                                                                <DropShadowEffect Color="Black" BlurRadius="25"
+                                                                                  ShadowDepth="8" Opacity="0.4"/>
+                                                            </Border.Effect>
+                                                            <Grid>
+                                                                <!-- Background Image -->
+                                                                <Border CornerRadius="16">
+                                                                    <Border.Background>
+                                                                        <ImageBrush ImageSource="{Binding DisplayImageUrl}"
+                                                                                    Stretch="UniformToFill"/>
+                                                                    </Border.Background>
+                                                                </Border>
+
+                                                                <!-- Fallback - Premium Dark -->
+                                                                <Border CornerRadius="16" Background="{StaticResource BgCardBrush}"
+                                                                        Visibility="{Binding DisplayImageUrl, Converter={x:Static local:Converters.NullToVisibility}}">
+                                                                    <TextBlock Text="{Binding Name}" FontSize="13"
+                                                                               FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}"
+                                                                               TextWrapping="Wrap" TextAlignment="Center"
+                                                                               VerticalAlignment="Center"
+                                                                               HorizontalAlignment="Center" Margin="16"/>
+                                                                </Border>
+
+                                                                <!-- Premium Gradient Overlay -->
+                                                                <Border CornerRadius="16">
+                                                                    <Border.Background>
+                                                                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="0,1">
+                                                                            <GradientStop Color="#00000000" Offset="0"/>
+                                                                            <GradientStop Color="#90000000" Offset="0.7"/>
+                                                                            <GradientStop Color="#E5000000" Offset="1"/>
+                                                                        </LinearGradientBrush>
+                                                                    </Border.Background>
+                                                                </Border>
+
+                                                                <!-- Info -->
+                                                                <StackPanel VerticalAlignment="Bottom" Margin="14">
+                                                                    <TextBlock Text="{Binding Name}" FontSize="14"
+                                                                               FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{Binding GroupTitle}" FontSize="12"
+                                                                               Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                                                                </StackPanel>
+
+                                                                <!-- Live Badge - Premium Gradient -->
+                                                                <Border CornerRadius="6" Padding="10,5"
+                                                                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                                        Margin="10"
+                                                                        Visibility="{Binding IsLive, Converter={x:Static local:Converters.BoolToVisibility}}">
+                                                                    <Border.Background>
+                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                            <GradientStop Color="#60A5FA" Offset="0"/>
+                                                                            <GradientStop Color="#A78BFA" Offset="1"/>
+                                                                        </LinearGradientBrush>
+                                                                    </Border.Background>
+                                                                    <TextBlock Text="EN DIRECT" FontSize="9" FontWeight="Bold"
+                                                                               Foreground="White"/>
+                                                                </Border>
+
+                                                                <!-- Rating Badge -->
+                                                                <Border CornerRadius="6" Background="#50000000"
+                                                                        Padding="8,4"
+                                                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                        Margin="10"
+                                                                        Visibility="{Binding Rating, Converter={x:Static local:Converters.RatingToVisibility}}">
+                                                                    <TextBlock FontSize="11" Foreground="{StaticResource TextPrimaryBrush}">
+                                                                        <Run Text="★ "/><Run Text="{Binding Rating, StringFormat='{}{0:F1}'}"/>
+                                                                    </TextBlock>
+                                                                </Border>
+
+                                                                <!-- Progress Bar -->
+                                                                <Border Height="3" VerticalAlignment="Bottom"
+                                                                        CornerRadius="0,0,16,16"
+                                                                        Visibility="{Binding HasProgress, Converter={x:Static local:Converters.BoolToVisibility}}">
+                                                                    <Grid>
+                                                                        <Border Background="#40000000"/>
+                                                                        <Border HorizontalAlignment="Left"
+                                                                                Width="{Binding WatchProgress, Converter={x:Static local:Converters.ProgressToWidth}}">
+                                                                            <Border.Background>
+                                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                                    <GradientStop Color="#60A5FA" Offset="0"/>
+                                                                                    <GradientStop Color="#A78BFA" Offset="1"/>
+                                                                                </LinearGradientBrush>
+                                                                            </Border.Background>
+                                                                        </Border>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Fallback: Direct Movies Display -->
+                        <StackPanel Margin="0,24,0,56">
+                            <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,24">
+                                Films
+                            </TextBlock>
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding Movies}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="180" Height="270" CornerRadius="16" Margin="0,0,18,0"
+                                                    Background="{StaticResource BgCardBrush}" Cursor="Hand"
+                                                    MouseLeftButtonUp="MediaCard_Click" Tag="{Binding}">
+                                                <Border.Effect>
+                                                    <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.35"/>
+                                                </Border.Effect>
+                                                <Grid>
+                                                    <Border CornerRadius="16">
+                                                        <Border.Background>
+                                                            <ImageBrush ImageSource="{Binding DisplayImageUrl}" Stretch="UniformToFill"/>
+                                                        </Border.Background>
+                                                    </Border>
+                                                    <Border CornerRadius="16">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="0,1">
+                                                                <GradientStop Color="#00000000" Offset="0"/>
+                                                                <GradientStop Color="#E0000000" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Bottom" Margin="14">
+                                                        <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+
+                        <!-- Fallback: Direct Live Channels Display -->
+                        <StackPanel Margin="0,0,0,56">
+                            <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,24">
+                                TV en direct
+                            </TextBlock>
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding LiveChannels}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="160" Height="110" CornerRadius="14" Margin="0,0,16,0"
+                                                    Background="{StaticResource BgCardBrush}" Cursor="Hand"
+                                                    MouseLeftButtonUp="MediaCard_Click" Tag="{Binding}">
+                                                <Border.Effect>
+                                                    <DropShadowEffect Color="Black" BlurRadius="15" ShadowDepth="3" Opacity="0.3"/>
+                                                </Border.Effect>
+                                                <Grid>
+                                                    <Border CornerRadius="14" Margin="20">
+                                                        <Border.Background>
+                                                            <ImageBrush ImageSource="{Binding LogoUrl}" Stretch="Uniform"/>
+                                                        </Border.Background>
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Bottom" Margin="10">
+                                                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="Medium"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"
+                                                                   TextAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Player unifié - Premium Design -->
+            <Border x:Name="PlayerContainer"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    Background="#000000"
+                    Visibility="Collapsed"
+                    Panel.ZIndex="100">
+                <DockPanel>
+                    <!-- Controls - Premium Bar -->
+                    <Border x:Name="PlayerControls" DockPanel.Dock="Bottom" Background="{StaticResource BgPanelBrush}" Padding="20,12">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <!-- Titre -->
+                            <TextBlock Text="{Binding CurrentItem.Name}" Foreground="White" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,20,0" MaxWidth="300" TextTrimming="CharacterEllipsis"/>
+
+                            <!-- Boutons -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding SeekBackwardCommand}" ToolTip="-10s">
+                                <TextBlock Text="⏪" FontSize="16" Foreground="White"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Width="50" Height="50"
+                                    Command="{Binding PlayPauseCommand}">
+                                <TextBlock Text="{Binding IsPlaying, Converter={x:Static local:Converters.BoolToPlayPause}}"
+                                           FontSize="24" Foreground="White"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding SeekForwardCommand}" ToolTip="+10s">
+                                <TextBlock Text="⏩" FontSize="16" Foreground="White"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding StopCommand}" ToolTip="Stop">
+                                <TextBlock Text="⏹" FontSize="14" Foreground="White"/>
+                            </Button>
+
+                            <!-- Temps -->
+                            <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="White" FontSize="12"
+                                       VerticalAlignment="Center" Margin="16,0,4,0"/>
+                            <TextBlock Text="/" Foreground="#666" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding TotalTimeDisplay}" Foreground="#888" FontSize="12"
+                                       VerticalAlignment="Center" Margin="4,0,16,0"/>
+
+                            <!-- Volume -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding ToggleMuteCommand}">
+                                <TextBlock Text="{Binding IsMuted, Converter={x:Static local:Converters.BoolToVolume}}"
+                                           FontSize="14" Foreground="White"/>
+                            </Button>
+                            <Slider Value="{Binding Volume}" Minimum="0" Maximum="100" Width="80"
+                                    VerticalAlignment="Center" Margin="4,0,16,0"/>
+
+                            <!-- Separator -->
+                            <Border Width="1" Height="24" Background="#333" Margin="0,0,16,0"/>
+
+                            <!-- Vitesse de lecture -->
+                            <Button Style="{StaticResource IconBtn}" Width="50" Height="40"
+                                    Command="{Binding CyclePlaybackSpeedCommand}" ToolTip="Vitesse de lecture">
+                                <TextBlock Text="{Binding PlaybackSpeedDisplay}" FontSize="12" Foreground="{StaticResource AccentBlueBrush}" FontWeight="SemiBold"/>
+                            </Button>
+
+                            <!-- Ratio d'aspect -->
+                            <Button Style="{StaticResource IconBtn}" Width="60" Height="40"
+                                    Command="{Binding CycleAspectRatioCommand}" ToolTip="Ratio d'aspect" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding AspectRatio}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" FontWeight="Medium"/>
+                            </Button>
+
+                            <!-- Piste Audio -->
+                            <Button Style="{StaticResource IconBtn}" Width="60" Height="40"
+                                    Command="{Binding CycleAudioTrackCommand}" ToolTip="Piste audio" Margin="0,0,4,0">
+                                <TextBlock Text="{Binding AudioTrackDisplay}" FontSize="10" FontWeight="Medium">
+                                    <TextBlock.Foreground>
+                                        <SolidColorBrush Color="{StaticResource AccentGreen}"/>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                            </Button>
+
+                            <!-- Sous-titres -->
+                            <Button Style="{StaticResource IconBtn}" Width="55" Height="40"
+                                    Command="{Binding CycleSubtitleTrackCommand}" ToolTip="Sous-titres" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding SubtitleTrackDisplay}" FontSize="10" FontWeight="Medium">
+                                    <TextBlock.Foreground>
+                                        <SolidColorBrush Color="{StaticResource AccentWarning}"/>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                            </Button>
+
+                            <!-- Separator -->
+                            <Border Width="1" Height="24" Background="#333" Margin="0,0,12,0"/>
+
+                            <!-- Indicateur de Qualité Vidéo (comme YouTube) -->
+                            <Border CornerRadius="6" Padding="6,3" Margin="0,0,8,0"
+                                    ToolTip="Qualité de la vidéo">
+                                <Border.Background>
+                                    <SolidColorBrush Color="#30FFFFFF"/>
+                                </Border.Background>
+                                <TextBlock Text="{Binding CurrentQualityDisplay}" FontSize="10"
+                                           Foreground="{StaticResource AccentBlueBrush}" FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+
+                            <!-- Indicateur de Santé de Lecture en Temps Réel -->
+                            <Border CornerRadius="8" Padding="8,4" Margin="0,0,12,0"
+                                    ToolTip="{Binding OptimizationStatus}">
+                                <Border.Background>
+                                    <SolidColorBrush Color="#20FFFFFF"/>
+                                </Border.Background>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding HealthStatusIcon}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding HealthStatusText}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" FontWeight="Medium"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Separator -->
+                            <Border Width="1" Height="24" Background="#333" Margin="0,0,8,0"/>
+
+                            <!-- Channel Zapping -->
+                            <Button Style="{StaticResource IconBtn}" Width="36" Height="36"
+                                    Command="{Binding ZapToPreviousChannelCommand}" ToolTip="Chaîne précédente (Page Up)">
+                                <TextBlock Text="◀" FontSize="12" Foreground="White"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Width="36" Height="36"
+                                    Command="{Binding ZapToNextChannelCommand}" ToolTip="Chaîne suivante (Page Down)">
+                                <TextBlock Text="▶" FontSize="12" Foreground="White"/>
+                            </Button>
+
+                            <!-- Recording -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding StartRecordingCommand}" ToolTip="Enregistrer (R)"
+                                    Visibility="{Binding IsRecording, Converter={x:Static local:Converters.BoolToVisibilityInverse}}">
+                                <TextBlock Text="⏺" FontSize="14" Foreground="White"/>
+                            </Button>
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding StopRecordingCommand}" ToolTip="Arrêter l'enregistrement"
+                                    Visibility="{Binding IsRecording, Converter={x:Static local:Converters.BoolToVisibility}}">
+                                <TextBlock Text="🔴" FontSize="14" Foreground="#F87171"/>
+                            </Button>
+
+                            <!-- Recording Status -->
+                            <TextBlock Text="{Binding RecordingStatus}" FontSize="10" Foreground="#F87171"
+                                       VerticalAlignment="Center" Margin="4,0,8,0"
+                                       Visibility="{Binding IsRecording, Converter={x:Static local:Converters.BoolToVisibility}}"/>
+
+                            <!-- Sleep Timer -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40" ToolTip="Timer veille">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="15 minutes" Command="{Binding SetSleepTimerCommand}" CommandParameter="15"/>
+                                        <MenuItem Header="30 minutes" Command="{Binding SetSleepTimerCommand}" CommandParameter="30"/>
+                                        <MenuItem Header="45 minutes" Command="{Binding SetSleepTimerCommand}" CommandParameter="45"/>
+                                        <MenuItem Header="60 minutes" Command="{Binding SetSleepTimerCommand}" CommandParameter="60"/>
+                                        <MenuItem Header="90 minutes" Command="{Binding SetSleepTimerCommand}" CommandParameter="90"/>
+                                        <Separator/>
+                                        <MenuItem Header="Annuler" Command="{Binding CancelSleepTimerCommand}"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                                <TextBlock Text="💤" FontSize="12" Foreground="{Binding IsSleepTimerActive, Converter={x:Static local:Converters.BoolToAccentBrush}}"/>
+                            </Button>
+                            <TextBlock Text="{Binding SleepTimerDisplay}" FontSize="10" Foreground="{StaticResource AccentPurpleBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"
+                                       Visibility="{Binding IsSleepTimerActive, Converter={x:Static local:Converters.BoolToVisibility}}"/>
+
+                            <!-- Binge Mode (for series) -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding ToggleBingeModeCommand}" ToolTip="Binge Mode - Lecture automatique">
+                                <TextBlock Text="🎬" FontSize="12" Foreground="{Binding IsBingeModeEnabled, Converter={x:Static local:Converters.BoolToAccentBrush}}"/>
+                            </Button>
+
+                            <!-- Cast to TV -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Command="{Binding DiscoverCastDevicesCommand}" ToolTip="Cast sur TV/Appareil">
+                                <TextBlock Text="📺" FontSize="12" Foreground="{Binding IsCastActive, Converter={x:Static local:Converters.BoolToAccentBrush}}"/>
+                            </Button>
+                            <TextBlock Text="{Binding CastDeviceName}" FontSize="10" Foreground="{StaticResource AccentBlueBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"
+                                       Visibility="{Binding IsCastActive, Converter={x:Static local:Converters.BoolToVisibility}}"/>
+
+                            <!-- Keyboard Shortcuts -->
+                            <Button Style="{StaticResource IconBtn}" Width="36" Height="36"
+                                    Click="ShowKeyboardShortcuts_Click" ToolTip="Raccourcis clavier (?)">
+                                <TextBlock Text="?" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Bold"/>
+                            </Button>
+
+                            <!-- Fullscreen -->
+                            <Button Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Click="ToggleFullscreen_Click" ToolTip="Plein écran (F)">
+                                <TextBlock x:Name="FullscreenIcon" Text="⛶" FontSize="18" Foreground="White"/>
+                            </Button>
+
+                            <!-- Fermer -->
+                            <Button x:Name="ClosePlayerBtn" Style="{StaticResource IconBtn}" Width="40" Height="40"
+                                    Click="ClosePlayer_Click" ToolTip="Fermer (Echap)">
+                                <TextBlock Text="✕" FontSize="14">
+                                    <TextBlock.Foreground>
+                                        <SolidColorBrush Color="{StaticResource AccentError}"/>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Video - remplit le reste -->
+                    <Grid>
+                        <vlc:VideoView x:Name="MiniVideoView"/>
+
+                        <!-- Buffering Overlay - Premium -->
+                        <Border Background="#90000000"
+                                Visibility="{Binding IsBuffering, Converter={x:Static local:Converters.BoolToVisibility}}">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock FontSize="20" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" FontWeight="Light">
+                                    Mise en mémoire tampon...
+                                </TextBlock>
+                                <Border Margin="0,16,0,0" Width="200" Height="3" CornerRadius="2" Background="#40FFFFFF">
+                                    <Border HorizontalAlignment="Left" CornerRadius="2"
+                                            Width="{Binding BufferProgress, Converter={x:Static local:Converters.ProgressToWidth}}">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#60A5FA" Offset="0"/>
+                                                <GradientStop Color="#A78BFA" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <!-- Loading Overlay - Premium avec spinner et progression -->
+            <Border Background="#F009090B"
+                    Visibility="{Binding IsLoading, Converter={x:Static local:Converters.BoolToVisibility}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MinWidth="400">
+                    <!-- Spinner animé -->
+                    <Grid Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Ellipse Width="60" Height="60" Stroke="#30FFFFFF" StrokeThickness="4"/>
+                        <Ellipse Width="60" Height="60" StrokeThickness="4" RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#60A5FA" Offset="0"/>
+                                    <GradientStop Color="Transparent" Offset="0.7"/>
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                            <Ellipse.RenderTransform>
+                                <RotateTransform x:Name="SpinnerRotation"/>
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation Storyboard.TargetName="SpinnerRotation"
+                                                           Storyboard.TargetProperty="Angle"
+                                                           From="0" To="360" Duration="0:0:1"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                    </Grid>
+
+                    <!-- Titre -->
+                    <TextBlock FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center">
+                        <TextBlock.Foreground>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#60A5FA" Offset="0"/>
+                                <GradientStop Color="#A78BFA" Offset="1"/>
+                            </LinearGradientBrush>
+                        </TextBlock.Foreground>
+                        <Run Text="Chargement en cours"/>
+                    </TextBlock>
+
+                    <!-- Barre de progression indéterminée -->
+                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,16,0,0"
+                                 Background="#20FFFFFF" Foreground="#60A5FA"/>
+
+                    <!-- Message de statut détaillé -->
+                    <Border Background="#15FFFFFF" CornerRadius="8" Padding="16,12" Margin="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Text="📡 Statut:" FontSize="12" Foreground="#888" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding StatusMessage}" FontSize="15" Foreground="{StaticResource TextPrimaryBrush}"
+                                       TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Info -->
+                    <TextBlock Text="Veuillez patienter..." FontSize="12" Foreground="#666"
+                               HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

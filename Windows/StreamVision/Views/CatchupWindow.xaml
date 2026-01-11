@@ -1,0 +1,184 @@
+<Window x:Class="StreamVision.Views.CatchupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rattrapage TV - 7 derniers jours"
+        Height="700" Width="1000"
+        WindowStartupLocation="CenterOwner"
+        Background="#1A1A2E">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#252542" Padding="20,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📼" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="Rattrapage TV" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="✕" Style="{StaticResource IconBtn}" Click="Close_Click" FontSize="18"/>
+            </Grid>
+        </Border>
+
+        <!-- Date Selection -->
+        <Border Grid.Row="1" Background="#1E1E3F" Padding="20,5">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="Day7Btn" Content="Il y a 7 jours" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="7" Margin="5"/>
+                <Button x:Name="Day6Btn" Content="Il y a 6 jours" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="6" Margin="5"/>
+                <Button x:Name="Day5Btn" Content="Il y a 5 jours" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="5" Margin="5"/>
+                <Button x:Name="Day4Btn" Content="Il y a 4 jours" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="4" Margin="5"/>
+                <Button x:Name="Day3Btn" Content="Il y a 3 jours" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="3" Margin="5"/>
+                <Button x:Name="Day2Btn" Content="Avant-hier" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="2" Margin="5"/>
+                <Button x:Name="Day1Btn" Content="Hier" Style="{StaticResource AccentBtn}" Click="Day_Click" Tag="1" Margin="5"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Channel List -->
+            <Border Grid.Column="0" Background="#252542">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Chaînes avec Catch-up" FontWeight="Bold" Foreground="White"
+                               Padding="15,10" FontSize="14"/>
+
+                    <ListBox x:Name="ChannelListBox" Grid.Row="1"
+                             Background="Transparent" BorderThickness="0"
+                             SelectionChanged="Channel_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="10,8" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="{Binding LogoUrl}" Width="30" Height="30" Margin="0,0,10,0"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                                            <TextBlock Text="{Binding CatchupDaysText}" Foreground="#8E8EA0" FontSize="11"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#4A4A7A"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#3A3A6A"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Program List -->
+            <Border Grid.Column="1" Background="#1A1A2E" Padding="15">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel x:Name="SelectedChannelHeader" Orientation="Horizontal" Margin="0,0,0,15">
+                        <TextBlock x:Name="SelectedDateText" Text="Sélectionnez une date"
+                                   FontSize="16" FontWeight="Bold" Foreground="White"/>
+                    </StackPanel>
+
+                    <ListBox x:Name="ProgramListBox" Grid.Row="1"
+                             Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#252542" CornerRadius="8" Margin="0,0,0,10" Padding="15"
+                                        Cursor="Hand" MouseLeftButtonUp="Program_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding TimeRange}" Foreground="#E94560"
+                                                       FontWeight="Bold" FontSize="13"/>
+                                            <TextBlock Text="{Binding Duration}" Foreground="#8E8EA0"
+                                                       FontSize="11" Margin="0,5,0,0"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Margin="15,0">
+                                            <TextBlock Text="{Binding Title}" Foreground="White"
+                                                       FontWeight="SemiBold" FontSize="14"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Description}" Foreground="#8E8EA0"
+                                                       FontSize="12" TextWrapping="Wrap" MaxHeight="40"
+                                                       TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="2" Content="▶ Regarder"
+                                                Style="{StaticResource AccentBtn}"
+                                                Click="Play_Click" Tag="{Binding}"
+                                                VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+
+                    <!-- Loading/Empty States -->
+                    <TextBlock x:Name="LoadingText" Grid.Row="1"
+                               Text="Sélectionnez une chaîne et une date pour voir les programmes en rattrapage"
+                               Foreground="#8E8EA0" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" TextAlignment="Center"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

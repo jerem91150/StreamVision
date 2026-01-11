@@ -1,0 +1,240 @@
+<Window x:Class="StreamVision.Views.KeyboardShortcutsOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Raccourcis Clavier"
+        Height="600" Width="500"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Topmost="True"
+        KeyDown="Window_KeyDown"
+        MouseDown="Window_MouseDown">
+
+    <Border Background="#E5121212" CornerRadius="16" Margin="20">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" ShadowDepth="0" Opacity="0.5"/>
+        </Border.Effect>
+
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <TextBlock Text="Raccourcis Clavier" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
+                <TextBlock Text="Appuyez sur une touche pour fermer" FontSize="12" Foreground="#888" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Shortcuts List -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- Lecture -->
+                    <TextBlock Text="LECTURE" FontSize="11" FontWeight="Bold" Foreground="#60A5FA" Margin="0,0,0,8"/>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="Espace" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Lecture / Pause" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="S" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Arrêter" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="← / →" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Reculer / Avancer 10s" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="+ / -" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Vitesse de lecture" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Volume -->
+                    <TextBlock Text="VOLUME" FontSize="11" FontWeight="Bold" Foreground="#60A5FA" Margin="0,16,0,8"/>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="↑ / ↓" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Volume +/- 5%" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="M" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Couper / Rétablir le son" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Affichage -->
+                    <TextBlock Text="AFFICHAGE" FontSize="11" FontWeight="Bold" Foreground="#60A5FA" Margin="0,16,0,8"/>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="F / F11" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Plein écran" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="Échap" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Quitter plein écran" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="R" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Changer le ratio d'aspect" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Audio/Sous-titres -->
+                    <TextBlock Text="AUDIO / SOUS-TITRES" FontSize="11" FontWeight="Bold" Foreground="#60A5FA" Margin="0,16,0,8"/>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="A" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Piste audio suivante" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="C" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Sous-titres suivants" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Navigation -->
+                    <TextBlock Text="NAVIGATION" FontSize="11" FontWeight="Bold" Foreground="#60A5FA" Margin="0,16,0,8"/>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="Page ↑/↓" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Chaîne précédente/suivante" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="0-9" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Numéro de chaîne" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="Ctrl+S" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Rechercher" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Autres -->
+                    <TextBlock Text="AUTRES" FontSize="11" FontWeight="Bold" Foreground="#60A5FA" Margin="0,16,0,8"/>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="I" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Informations sur le média" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#2A2A2A" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
+                            <TextBlock Text="?" Foreground="White" FontFamily="Consolas"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Afficher cette aide" Foreground="#CCC" VerticalAlignment="Center"/>
+                    </Grid>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <TextBlock Grid.Row="2" Text="Cliquez ou appuyez sur une touche pour fermer"
+                       FontSize="11" Foreground="#666" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+
+        </Grid>
+    </Border>
+</Window>

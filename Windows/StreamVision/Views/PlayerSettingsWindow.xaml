@@ -1,0 +1,739 @@
+<Window x:Class="StreamVision.Views.PlayerSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:StreamVision.Views"
+        Title="Paramètres du lecteur"
+        Height="700" Width="900"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <!-- Dark theme colors -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#0F0F0F"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#1A1A1A"/>
+        <SolidColorBrush x:Key="CardHoverBrush" Color="#252525"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#2A2A2A"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#2563EB"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A1A1AA"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#22C55E"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+
+        <!-- Tab Item Style -->
+        <Style x:Key="TabItemStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{TemplateBinding Tag}" FontSize="16" Margin="0,0,10,0"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{TemplateBinding Content}" FontSize="14" FontWeight="Medium"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource CardHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Slider Style -->
+        <Style x:Key="ModernSlider" TargetType="Slider">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Border Height="6" Background="#27272A" CornerRadius="3" VerticalAlignment="Center"/>
+                            <Border Height="6" Background="{StaticResource AccentBrush}" CornerRadius="3"
+                                    VerticalAlignment="Center" HorizontalAlignment="Left"
+                                    Width="{Binding Value, RelativeSource={RelativeSource TemplatedParent},
+                                            Converter={x:Static local:SliderValueToWidthConverter.Instance}}"/>
+                            <Track x:Name="PART_Track">
+                                <Track.Thumb>
+                                    <Thumb Width="18" Height="18">
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Ellipse Fill="{StaticResource AccentBrush}" Width="18" Height="18">
+                                                    <Ellipse.Effect>
+                                                        <DropShadowEffect ShadowDepth="0" BlurRadius="8"
+                                                                          Color="#3B82F6" Opacity="0.5"/>
+                                                    </Ellipse.Effect>
+                                                </Ellipse>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Toggle Switch Style -->
+        <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="44" Height="24">
+                            <Border x:Name="track" CornerRadius="12" Background="#27272A" Cursor="Hand"/>
+                            <Border x:Name="thumb" Width="20" Height="20" CornerRadius="10"
+                                    Background="White" Margin="2,0,22,0" HorizontalAlignment="Left"
+                                    VerticalAlignment="Center" Cursor="Hand"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="track" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="thumb" Property="Margin" Value="22,0,2,0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="#27272A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3F3F46"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Height" Value="36"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style x:Key="PresetButton" TargetType="Button">
+            <Setter Property="Background" Value="#27272A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3F3F46"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="24,12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{StaticResource BackgroundBrush}" CornerRadius="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="70"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{StaticResource CardBrush}" CornerRadius="16,16,0,0"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="20,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="⚙" FontSize="24" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   Foreground="{StaticResource AccentBrush}"/>
+                        <TextBlock Text="Paramètres du lecteur" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="White" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Width="32" Height="32" Click="Close_Click"
+                            Background="Transparent" Foreground="#71717A" BorderThickness="0"
+                            FontSize="16" Cursor="Hand"/>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <Grid Grid.Row="1" Margin="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Navigation -->
+                <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                    <TextBlock Text="CATÉGORIES" FontSize="11" FontWeight="SemiBold"
+                               Foreground="#52525B" Margin="16,0,0,8"/>
+
+                    <RadioButton x:Name="TabPresets" Style="{StaticResource TabItemStyle}"
+                                 Content="Préréglages" Tag="🎯" IsChecked="True"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                    <RadioButton x:Name="TabBuffer" Style="{StaticResource TabItemStyle}"
+                                 Content="Buffer/Cache" Tag="💾"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                    <RadioButton x:Name="TabDecoding" Style="{StaticResource TabItemStyle}"
+                                 Content="Décodage" Tag="🔧"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                    <RadioButton x:Name="TabNetwork" Style="{StaticResource TabItemStyle}"
+                                 Content="Réseau" Tag="🌐"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                    <RadioButton x:Name="TabAudio" Style="{StaticResource TabItemStyle}"
+                                 Content="Audio" Tag="🔊"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                    <RadioButton x:Name="TabVideo" Style="{StaticResource TabItemStyle}"
+                                 Content="Vidéo" Tag="🎬"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                    <RadioButton x:Name="TabPlayback" Style="{StaticResource TabItemStyle}"
+                                 Content="Lecture" Tag="▶"
+                                 Checked="Tab_Changed" GroupName="Tabs"/>
+                </StackPanel>
+
+                <!-- Right Content -->
+                <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="12"
+                        Padding="24">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <!-- Presets Panel -->
+                            <StackPanel x:Name="PresetsPanel" Visibility="Visible">
+                                <TextBlock Text="Préréglages rapides" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Choisissez un profil adapté à votre situation"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <WrapPanel>
+                                    <Button Style="{StaticResource PresetButton}" Margin="0,0,10,10"
+                                            Click="Preset_Click" Tag="default">
+                                        <StackPanel>
+                                            <TextBlock Text="🎮 Par défaut" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="Équilibré" FontSize="11" Foreground="#71717A"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PresetButton}" Margin="0,0,10,10"
+                                            Click="Preset_Click" Tag="stable">
+                                        <StackPanel>
+                                            <TextBlock Text="🛡 Stable" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="Moins de coupures" FontSize="11" Foreground="#71717A"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PresetButton}" Margin="0,0,10,10"
+                                            Click="Preset_Click" Tag="lowlatency">
+                                        <StackPanel>
+                                            <TextBlock Text="⚡ Faible latence" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="Live TV, Sport" FontSize="11" Foreground="#71717A"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PresetButton}" Margin="0,0,10,10"
+                                            Click="Preset_Click" Tag="quality">
+                                        <StackPanel>
+                                            <TextBlock Text="✨ Qualité max" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="Films, Séries" FontSize="11" Foreground="#71717A"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PresetButton}" Margin="0,0,10,10"
+                                            Click="Preset_Click" Tag="slowconnection">
+                                        <StackPanel>
+                                            <TextBlock Text="🐢 Connexion lente" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="ADSL, 4G faible" FontSize="11" Foreground="#71717A"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PresetButton}" Margin="0,0,10,10"
+                                            Click="Preset_Click" Tag="compatibility">
+                                        <StackPanel>
+                                            <TextBlock Text="🔄 Compatibilité" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="Vieux PC" FontSize="11" Foreground="#71717A"/>
+                                        </StackPanel>
+                                    </Button>
+                                </WrapPanel>
+
+                                <Border Height="1" Background="#27272A" Margin="0,20"/>
+
+                                <TextBlock Text="Préréglage actuel" FontSize="14" FontWeight="Medium"
+                                           Foreground="White" Margin="0,0,0,12"/>
+                                <Border Background="#27272A" CornerRadius="8" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="CurrentPresetName" Text="Par défaut"
+                                                   FontSize="16" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock x:Name="CurrentPresetDesc"
+                                                   Text="Buffer: 3000ms | Reconnexion auto: Oui | Hardware: Auto"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Buffer Panel -->
+                            <StackPanel x:Name="BufferPanel" Visibility="Collapsed">
+                                <TextBlock Text="Paramètres de buffer" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Augmentez le buffer si vous avez des coupures fréquentes"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <!-- Network Caching -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Cache réseau" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="NetworkCachingValue" Text="3000 ms"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Temps de mise en mémoire tampon pour les flux réseau"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="NetworkCachingSlider" Minimum="500" Maximum="15000"
+                                            Value="3000" TickFrequency="500"
+                                            ValueChanged="NetworkCaching_Changed"/>
+                                </StackPanel>
+
+                                <!-- Live Caching -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Cache Live TV" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="LiveCachingValue" Text="3000 ms"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Buffer pour les chaînes en direct"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="LiveCachingSlider" Minimum="500" Maximum="10000"
+                                            Value="3000" TickFrequency="500"
+                                            ValueChanged="LiveCaching_Changed"/>
+                                </StackPanel>
+
+                                <!-- File Caching -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Cache VOD/Films" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="FileCachingValue" Text="1500 ms"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Buffer pour le contenu à la demande"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="FileCachingSlider" Minimum="500" Maximum="10000"
+                                            Value="1500" TickFrequency="500"
+                                            ValueChanged="FileCaching_Changed"/>
+                                </StackPanel>
+
+                                <!-- Min Buffer Before Play -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Buffer minimum avant lecture" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="MinBufferValue" Text="20%"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Pourcentage de buffer requis avant de démarrer la lecture"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="MinBufferSlider" Minimum="0" Maximum="100"
+                                            Value="20" TickFrequency="5"
+                                            ValueChanged="MinBuffer_Changed"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Decoding Panel -->
+                            <StackPanel x:Name="DecodingPanel" Visibility="Collapsed">
+                                <TextBlock Text="Paramètres de décodage" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Optimisez le décodage vidéo selon votre matériel"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <!-- Hardware Acceleration -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Accélération matérielle (GPU)" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Utilise la carte graphique pour décoder la vidéo"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="HardwareAccelCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- HW Type -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="Type d'accélération" FontWeight="Medium" Foreground="White"/>
+                                    <TextBlock Text="Méthode de décodage GPU à utiliser"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <ComboBox x:Name="HWTypeCombo" SelectedIndex="0" SelectionChanged="Setting_Changed">
+                                        <ComboBoxItem Content="Automatique" Tag="auto"/>
+                                        <ComboBoxItem Content="D3D11VA (Windows 10+)" Tag="d3d11va"/>
+                                        <ComboBoxItem Content="DXVA2 (Windows 7+)" Tag="dxva2"/>
+                                        <ComboBoxItem Content="Désactivé" Tag="none"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <!-- Skip Frames -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Sauter les images en retard" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Maintient la synchronisation en sautant des images si nécessaire"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="SkipFramesCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Fast Seek -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Recherche rapide" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Navigation plus rapide mais moins précise dans la timeline"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="FastSeekCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Decoding Threads -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Threads de décodage" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="ThreadsValue" Text="Auto"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Nombre de threads CPU pour le décodage (0 = auto)"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="ThreadsSlider" Minimum="0" Maximum="16"
+                                            Value="0" TickFrequency="1"
+                                            ValueChanged="Threads_Changed"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Network Panel -->
+                            <StackPanel x:Name="NetworkPanel" Visibility="Collapsed">
+                                <TextBlock Text="Paramètres réseau" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Configurez les options de connexion et de reconnexion"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <!-- Auto Reconnect -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Reconnexion automatique" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Se reconnecte automatiquement si le flux est coupé"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AutoReconnectCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Reconnect Attempts -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Tentatives de reconnexion" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="ReconnectAttemptsValue" Text="3"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Nombre de tentatives avant d'abandonner"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="ReconnectAttemptsSlider" Minimum="1" Maximum="10"
+                                            Value="3" TickFrequency="1"
+                                            ValueChanged="ReconnectAttempts_Changed"/>
+                                </StackPanel>
+
+                                <!-- Connection Timeout -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Timeout de connexion" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="ConnectionTimeoutValue" Text="10 sec"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Temps d'attente maximum pour établir la connexion"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="ConnectionTimeoutSlider" Minimum="5000" Maximum="60000"
+                                            Value="10000" TickFrequency="5000"
+                                            ValueChanged="ConnectionTimeout_Changed"/>
+                                </StackPanel>
+
+                                <!-- Prefer IPv4 -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Préférer IPv4" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Utilise IPv4 au lieu d'IPv6 quand possible"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="PreferIPv4Checkbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- User Agent -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="User-Agent HTTP" FontWeight="Medium" Foreground="White"/>
+                                    <TextBlock Text="Identifiant envoyé au serveur (laisser vide = VLC par défaut)"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <TextBox x:Name="UserAgentTextBox" Background="#27272A" Foreground="White"
+                                             BorderBrush="#3F3F46" Padding="12,8" Height="36"
+                                             Text="VLC/3.0.20 LibVLC/3.0.20" TextChanged="Setting_Changed"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Audio Panel -->
+                            <StackPanel x:Name="AudioPanel" Visibility="Collapsed">
+                                <TextBlock Text="Paramètres audio" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Ajustez le son et la synchronisation audio"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <!-- Audio Delay -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Délai audio" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="AudioDelayValue" Text="0 ms"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Ajuste la synchronisation audio/vidéo"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="AudioDelaySlider" Minimum="-5000" Maximum="5000"
+                                            Value="0" TickFrequency="100"
+                                            ValueChanged="AudioDelay_Changed"/>
+                                </StackPanel>
+
+                                <!-- Volume Boost -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Boost du volume" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="VolumeBoostValue" Text="100%"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Amplification du volume (peut causer de la distorsion au-dessus de 100%)"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="VolumeBoostSlider" Minimum="50" Maximum="200"
+                                            Value="100" TickFrequency="10"
+                                            ValueChanged="VolumeBoost_Changed"/>
+                                </StackPanel>
+
+                                <!-- Audio Normalize -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Normaliser le volume" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Égalise le volume entre les différents contenus"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AudioNormalizeCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="False" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Audio Time Stretch -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Conservation du pitch" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Maintient la hauteur du son lors des changements de vitesse"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AudioTimeStretchCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Audio Output -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="Sortie audio" FontWeight="Medium" Foreground="White"/>
+                                    <TextBlock Text="Module de sortie audio à utiliser"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <ComboBox x:Name="AudioOutputCombo" SelectedIndex="0" SelectionChanged="Setting_Changed">
+                                        <ComboBoxItem Content="Automatique" Tag=""/>
+                                        <ComboBoxItem Content="WASAPI (Recommandé)" Tag="wasapi"/>
+                                        <ComboBoxItem Content="DirectSound" Tag="directsound"/>
+                                        <ComboBoxItem Content="WaveOut (Compatibilité)" Tag="waveout"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Video Panel -->
+                            <StackPanel x:Name="VideoPanel" Visibility="Collapsed">
+                                <TextBlock Text="Paramètres vidéo" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Configurez la qualité et le rendu vidéo"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <!-- Subtitle Delay -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Délai sous-titres" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="SubtitleDelayValue" Text="0 ms"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Ajuste la synchronisation des sous-titres"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="SubtitleDelaySlider" Minimum="-5000" Maximum="5000"
+                                            Value="0" TickFrequency="100"
+                                            ValueChanged="SubtitleDelay_Changed"/>
+                                </StackPanel>
+
+                                <!-- Deinterlace -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="Désentrelacement" FontWeight="Medium" Foreground="White"/>
+                                    <TextBlock Text="Pour les sources entrelacées (TV analogique, DVD)"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <ComboBox x:Name="DeinterlaceCombo" SelectedIndex="0" SelectionChanged="Setting_Changed">
+                                        <ComboBoxItem Content="Automatique" Tag="auto"/>
+                                        <ComboBoxItem Content="Désactivé" Tag="off"/>
+                                        <ComboBoxItem Content="Activé" Tag="on"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <!-- Deinterlace Mode -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="Algorithme de désentrelacement" FontWeight="Medium" Foreground="White"/>
+                                    <TextBlock Text="Méthode utilisée pour le désentrelacement"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <ComboBox x:Name="DeinterlaceModeCombo" SelectedIndex="4" SelectionChanged="Setting_Changed">
+                                        <ComboBoxItem Content="Blend (Fusion)" Tag="blend"/>
+                                        <ComboBoxItem Content="Bob" Tag="bob"/>
+                                        <ComboBoxItem Content="Discard" Tag="discard"/>
+                                        <ComboBoxItem Content="Linear" Tag="linear"/>
+                                        <ComboBoxItem Content="Yadif (Recommandé)" Tag="yadif"/>
+                                        <ComboBoxItem Content="Yadif 2x (Meilleur)" Tag="yadif2x"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <!-- Post Processing -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Post-traitement" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Améliore la qualité mais utilise plus de CPU"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="PostProcessingCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="False" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Video Output -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="Sortie vidéo" FontWeight="Medium" Foreground="White"/>
+                                    <TextBlock Text="Module de rendu vidéo à utiliser"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <ComboBox x:Name="VideoOutputCombo" SelectedIndex="0" SelectionChanged="Setting_Changed">
+                                        <ComboBoxItem Content="Automatique" Tag=""/>
+                                        <ComboBoxItem Content="Direct3D 11 (Recommandé)" Tag="d3d11"/>
+                                        <ComboBoxItem Content="Direct3D 9" Tag="d3d9"/>
+                                        <ComboBoxItem Content="OpenGL" Tag="gl"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Playback Panel -->
+                            <StackPanel x:Name="PlaybackPanel" Visibility="Collapsed">
+                                <TextBlock Text="Paramètres de lecture" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="White" Margin="0,0,0,8"/>
+                                <TextBlock Text="Options de confort pour la lecture"
+                                           FontSize="13" Foreground="#71717A" Margin="0,0,0,20"/>
+
+                                <!-- Remember Position -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Mémoriser la position" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Reprend la lecture là où vous vous étiez arrêté"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="RememberPositionCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Auto Play Next -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Lecture automatique" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Lit automatiquement l'épisode suivant"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AutoPlayNextCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+
+                                <!-- Skip Intro -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <Grid>
+                                        <TextBlock Text="Passer l'intro" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock x:Name="SkipIntroValue" Text="Désactivé"
+                                                   HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                    <TextBlock Text="Saute automatiquement les premières secondes (0 = désactivé)"
+                                               FontSize="12" Foreground="#71717A" Margin="0,4,0,8"/>
+                                    <Slider x:Name="SkipIntroSlider" Minimum="0" Maximum="120"
+                                            Value="0" TickFrequency="5"
+                                            ValueChanged="SkipIntro_Changed"/>
+                                </StackPanel>
+
+                                <!-- Adaptive Quality -->
+                                <Grid Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Qualité adaptative" FontWeight="Medium" Foreground="White"/>
+                                        <TextBlock Text="Réduit automatiquement la qualité si la connexion est lente"
+                                                   FontSize="12" Foreground="#71717A" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AdaptiveQualityCheckbox" Style="{StaticResource ToggleSwitch}"
+                                              IsChecked="True" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <!-- Footer -->
+            <Border Grid.Row="2" Background="{StaticResource CardBrush}" CornerRadius="0,0,16,16">
+                <Grid Margin="20,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="💡" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="TipText" Text="Conseil : Essayez le préréglage 'Stable' si vous avez des coupures fréquentes"
+                                   FontSize="12" Foreground="#71717A" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Content="Réinitialiser" Style="{StaticResource PresetButton}"
+                                Click="Reset_Click" Margin="0,0,12,0"/>
+                        <Button Content="Appliquer" Style="{StaticResource AccentButton}"
+                                Click="Apply_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
