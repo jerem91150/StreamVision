@@ -15,9 +15,10 @@ namespace StreamVision.Services
         static M3UParser()
         {
             _httpClient = new HttpClient();
-            // User-Agent requis par certains serveurs IPTV
+            _httpClient.Timeout = TimeSpan.FromMinutes(5);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         }
+
         private static readonly Regex _extinfoRegex = new(
             @"#EXTINF:(?<duration>-?\d+)\s*(?<attributes>.*?),\s*(?<title>.*)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -25,12 +26,57 @@ namespace StreamVision.Services
             @"(?<key>[\w-]+)=""(?<value>[^""]*)""",
             RegexOptions.Compiled);
 
-        public async Task<List<Channel>> ParseFromUrlAsync(string url, string sourceId)
+        /// <summary>
+        /// Parse M3U from URL using streaming - mémoire optimisée pour gros fichiers
+        /// </summary>
+        public async Task<List<Channel>> ParseFromUrlAsync(string url, string sourceId, IProgress<int>? progress = null)
         {
             try
             {
-                var content = await _httpClient.GetStringAsync(url);
-                return ParseContent(content, sourceId);
+                var channels = new List<Channel>();
+
+                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new StreamReader(stream);
+
+                Channel? currentChannel = null;
+                int order = 0;
+                int lastReportedProgress = 0;
+
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    var trimmedLine = line.Trim();
+
+                    if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith("#EXTM3U"))
+                        continue;
+
+                    if (trimmedLine.StartsWith("#EXTINF:"))
+                    {
+                        currentChannel = ParseExtInf(trimmedLine, sourceId, order++);
+                    }
+                    else if (!trimmedLine.StartsWith("#"))
+                    {
+                        if (currentChannel != null)
+                        {
+                            currentChannel.StreamUrl = trimmedLine;
+                            channels.Add(currentChannel);
+                            currentChannel = null;
+
+                            // Report progress every 10000 channels
+                            if (progress != null && channels.Count - lastReportedProgress >= 10000)
+                            {
+                                progress.Report(channels.Count);
+                                lastReportedProgress = channels.Count;
+                            }
+                        }
+                    }
+                }
+
+                progress?.Report(channels.Count);
+                return channels;
             }
             catch (Exception ex)
             {
@@ -42,46 +88,43 @@ namespace StreamVision.Services
         {
             try
             {
-                var content = await File.ReadAllTextAsync(filePath);
-                return ParseContent(content, sourceId);
+                var channels = new List<Channel>();
+
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 65536);
+                using var reader = new StreamReader(stream);
+
+                Channel? currentChannel = null;
+                int order = 0;
+
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    var trimmedLine = line.Trim();
+
+                    if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith("#EXTM3U"))
+                        continue;
+
+                    if (trimmedLine.StartsWith("#EXTINF:"))
+                    {
+                        currentChannel = ParseExtInf(trimmedLine, sourceId, order++);
+                    }
+                    else if (!trimmedLine.StartsWith("#"))
+                    {
+                        if (currentChannel != null)
+                        {
+                            currentChannel.StreamUrl = trimmedLine;
+                            channels.Add(currentChannel);
+                            currentChannel = null;
+                        }
+                    }
+                }
+
+                return channels;
             }
             catch (Exception ex)
             {
                 throw new Exception($"Failed to read M3U file: {ex.Message}", ex);
             }
-        }
-
-        private List<Channel> ParseContent(string content, string sourceId)
-        {
-            var channels = new List<Channel>();
-            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            Channel? currentChannel = null;
-            int order = 0;
-
-            foreach (var line in lines)
-            {
-                var trimmedLine = line.Trim();
-
-                if (trimmedLine.StartsWith("#EXTM3U"))
-                    continue;
-
-                if (trimmedLine.StartsWith("#EXTINF:"))
-                {
-                    currentChannel = ParseExtInf(trimmedLine, sourceId, order++);
-                }
-                else if (!trimmedLine.StartsWith("#") && !string.IsNullOrWhiteSpace(trimmedLine))
-                {
-                    if (currentChannel != null)
-                    {
-                        currentChannel.StreamUrl = trimmedLine;
-                        channels.Add(currentChannel);
-                        currentChannel = null;
-                    }
-                }
-            }
-
-            return channels;
         }
 
         private Channel ParseExtInf(string line, string sourceId, int order)

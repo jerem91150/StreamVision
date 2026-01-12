@@ -27,6 +27,7 @@ namespace StreamVision.ViewModels
         private readonly RecommendationEngine _recommendationEngine;
         private readonly ContentAnalyzerService _contentAnalyzer;
         private readonly StreamOptimizerService _streamOptimizer;
+        private readonly SmartContentService _smartContent;
 
         // New enhanced services (initialized after LibVLC)
         private ChannelPreloaderService? _channelPreloader;
@@ -52,6 +53,14 @@ namespace StreamVision.ViewModels
         private int _totalLiveChannels;
         private int _totalMovies;
         private int _totalSeries;
+
+        // Full content lists for search (NOT bound to UI)
+        private List<MediaItem> _allLiveChannels = new();
+        private List<MediaItem> _allMovies = new();
+        private List<MediaItem> _allSeries = new();
+
+        // Maximum items to display in UI (prevents freeze)
+        private const int MaxDisplayItems = 5000;
 
         #region Observable Properties
 
@@ -322,6 +331,7 @@ namespace StreamVision.ViewModels
             _recommendationEngine = new RecommendationEngine(_databaseService);
             _contentAnalyzer = new ContentAnalyzerService();
             _streamOptimizer = new StreamOptimizerService();
+            _smartContent = new SmartContentService();
 
             // Initialize services that don't need LibVLC
             _bingeModeService = new BingeModeService();
@@ -922,58 +932,103 @@ namespace StreamVision.ViewModels
             SeriesCategories.Clear();
             foreach (var cat in seriesCats) SeriesCategories.Add(cat);
 
-            // Charger seulement la première catégorie de chaque type pour éviter crash mémoire
-            _totalLiveChannels = liveCats.Count > 0 ? liveCats.Count * 100 : 0; // Estimation
-            _totalMovies = vodCats.Count > 0 ? vodCats.Count * 100 : 0;
-            _totalSeries = seriesCats.Count > 0 ? seriesCats.Count * 50 : 0;
-
             LiveChannels.Clear();
             Movies.Clear();
             Series.Clear();
 
-            // Charger seulement la première catégorie Live (France généralement)
+            var allLive = new List<MediaItem>();
+            var allMovies = new List<MediaItem>();
+            var allSeries = new List<MediaItem>();
+
+            // === CHARGEMENT COMPLET DE TOUTES LES CATÉGORIES ===
+
+            // Charger TOUTES les chaînes Live
             if (liveCats.Count > 0)
             {
-                StatusMessage = $"Loading live: {liveCats[0].CategoryName}...";
-                try
+                int loadedCats = 0;
+                foreach (var cat in liveCats)
                 {
-                    var firstCatChannels = await _xtreamService.GetLiveStreamsAsync(
-                        serverUrl, username, password, source.Id, liveCats[0].CategoryId);
-                    foreach (var ch in firstCatChannels.Take(200))
-                        LiveChannels.Add(ch);
+                    loadedCats++;
+                    StatusMessage = $"📺 Live [{loadedCats}/{liveCats.Count}]: {cat.CategoryName}...";
+                    try
+                    {
+                        var channels = await _xtreamService.GetLiveStreamsAsync(
+                            serverUrl, username, password, source.Id, cat.CategoryId);
+                        allLive.AddRange(channels);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Xtream] Error loading live category {cat.CategoryName}: {ex.Message}");
+                    }
                 }
-                catch (Exception ex) { StatusMessage = $"Live error: {ex.Message}"; }
             }
 
-            // Charger seulement la première catégorie VOD
+            // Charger TOUS les films VOD
             if (vodCats.Count > 0)
             {
-                StatusMessage = $"Loading VOD: {vodCats[0].CategoryName}...";
-                try
+                int loadedCats = 0;
+                foreach (var cat in vodCats)
                 {
-                    var firstCatVod = await _xtreamService.GetVodStreamsAsync(
-                        serverUrl, username, password, source.Id, vodCats[0].CategoryId);
-                    foreach (var m in firstCatVod.Take(200))
-                        Movies.Add(m);
+                    loadedCats++;
+                    StatusMessage = $"🎬 VOD [{loadedCats}/{vodCats.Count}]: {cat.CategoryName}...";
+                    try
+                    {
+                        var movies = await _xtreamService.GetVodStreamsAsync(
+                            serverUrl, username, password, source.Id, cat.CategoryId);
+                        allMovies.AddRange(movies);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Xtream] Error loading VOD category {cat.CategoryName}: {ex.Message}");
+                    }
                 }
-                catch (Exception ex) { StatusMessage = $"VOD error: {ex.Message}"; }
             }
 
-            // Charger seulement la première catégorie Series
+            // Charger TOUTES les séries
             if (seriesCats.Count > 0)
             {
-                StatusMessage = $"Loading series: {seriesCats[0].CategoryName}...";
-                try
+                int loadedCats = 0;
+                foreach (var cat in seriesCats)
                 {
-                    var firstCatSeries = await _xtreamService.GetSeriesAsync(
-                        serverUrl, username, password, source.Id, seriesCats[0].CategoryId);
-                    foreach (var s in firstCatSeries.Take(100))
-                        Series.Add(s);
+                    loadedCats++;
+                    StatusMessage = $"📺 Séries [{loadedCats}/{seriesCats.Count}]: {cat.CategoryName}...";
+                    try
+                    {
+                        var series = await _xtreamService.GetSeriesAsync(
+                            serverUrl, username, password, source.Id, cat.CategoryId);
+                        allSeries.AddRange(series);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Xtream] Error loading series category {cat.CategoryName}: {ex.Message}");
+                    }
                 }
-                catch (Exception ex) { StatusMessage = $"Series error: {ex.Message}"; }
             }
 
-            StatusMessage = $"Loaded {LiveChannels.Count} channels, {Movies.Count} movies, {Series.Count} series";
+            // Stocker TOUT le contenu dans les listes privées (pour la recherche)
+            _allLiveChannels = allLive;
+            _allMovies = allMovies;
+            _allSeries = allSeries;
+            _totalLiveChannels = allLive.Count;
+            _totalMovies = allMovies.Count;
+            _totalSeries = allSeries.Count;
+
+            // Filtrer par préférences de langue PUIS limiter pour l'UI
+            StatusMessage = $"🔍 Filtrage par préférences ({string.Join(", ", UserPreferences.PreferredLanguages)})...";
+            var filteredLive = await Task.Run(() => allLive.Where(MatchesUserPreferences).Take(MaxDisplayItems).ToList());
+            var filteredMovies = await Task.Run(() => allMovies.Where(MatchesUserPreferences).Take(MaxDisplayItems).ToList());
+            var filteredSeries = await Task.Run(() => allSeries.Where(MatchesUserPreferences).Take(MaxDisplayItems).ToList());
+
+            StatusMessage = $"⚡ Affichage de {filteredLive.Count:N0} chaînes filtrées (sur {allLive.Count:N0})...";
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                LiveChannels = new ObservableCollection<MediaItem>(filteredLive);
+                Movies = new ObservableCollection<MediaItem>(filteredMovies);
+                Series = new ObservableCollection<MediaItem>(filteredSeries);
+            }, System.Windows.Threading.DispatcherPriority.Normal);
+
+            Console.WriteLine($"[Xtream] ✅ Chargement complet: {_totalLiveChannels:N0} live, {_totalMovies:N0} films, {_totalSeries:N0} séries (UI: {LiveChannels.Count}/{Movies.Count}/{Series.Count})");
+            StatusMessage = $"✅ {_totalLiveChannels:N0} chaînes, {_totalMovies:N0} films, {_totalSeries:N0} séries";
 
             // Enrich with TMDb (background)
             _ = EnrichContentWithTmdbAsync();
@@ -1031,30 +1086,50 @@ namespace StreamVision.ViewModels
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ✅ Conversion terminée en {convertTime:F2}s");
 
             StatusMessage = $"📺 Chargement de {mediaItems.Count:N0} chaînes...";
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 📺 Remplacement de la collection...");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 📺 Stockage du contenu complet...");
 
             var addStart = DateTime.Now;
 
-            // Remplacer la collection d'un coup (beaucoup plus rapide)
+            // Stocker TOUT le contenu dans la liste privée (pour la recherche)
+            _allLiveChannels = mediaItems;
+            _totalLiveChannels = mediaItems.Count;
+
+            // Filtrer par préférences de langue PUIS limiter pour l'UI
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 🔍 Filtrage par préférences ({string.Join(", ", UserPreferences.PreferredLanguages)})...");
+            var filteredItems = await Task.Run(() => mediaItems.Where(MatchesUserPreferences).Take(MaxDisplayItems).ToList());
+
+            // Si pas assez d'items filtrés, compléter avec d'autres
+            if (filteredItems.Count < MaxDisplayItems)
+            {
+                var remaining = MaxDisplayItems - filteredItems.Count;
+                var existingIds = new HashSet<string>(filteredItems.Select(x => x.Id));
+                var additional = mediaItems.Where(x => !existingIds.Contains(x.Id)).Take(remaining);
+                filteredItems.AddRange(additional);
+            }
+
+            var displayItems = filteredItems;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 📺 Création collection UI avec {displayItems.Count:N0} items filtrés (sur {mediaItems.Count:N0} total)...");
+
+            var newCollection = await Task.Run(() => new ObservableCollection<MediaItem>(displayItems));
+
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 📺 Assignation à l'UI...");
+
+            // Assigner sur le thread UI (instantané car la collection est petite)
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                LiveChannels.Clear();
-                foreach (var item in mediaItems)
-                {
-                    LiveChannels.Add(item);
-                }
-            }, System.Windows.Threading.DispatcherPriority.Background);
+                LiveChannels = newCollection;
+            }, System.Windows.Threading.DispatcherPriority.Normal);
 
             var addTime = (DateTime.Now - addStart).TotalSeconds;
             var totalTime = (DateTime.Now - startTime).TotalSeconds;
 
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ✅ Ajout terminé en {addTime:F2}s");
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ⏱️ TEMPS TOTAL: {totalTime:F2}s");
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 📊 RÉSULTAT: {LiveChannels.Count:N0} chaînes chargées");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 📊 RÉSULTAT: {_allLiveChannels.Count:N0} chaînes (UI: {LiveChannels.Count:N0})");
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ▶️ FIN du chargement M3U");
             Console.WriteLine(new string('─', 50));
 
-            StatusMessage = $"✅ {LiveChannels.Count:N0} chaînes chargées en {totalTime:F1}s";
+            StatusMessage = $"✅ {_allLiveChannels.Count:N0} chaînes chargées en {totalTime:F1}s (affichage: {LiveChannels.Count:N0})";
         }
 
         private async Task LoadStalkerContentAsync(PlaylistSource source)
@@ -1080,46 +1155,74 @@ namespace StreamVision.ViewModels
             Movies.Clear();
             Series.Clear();
 
-            // Load live channels
+            var allLive = new List<MediaItem>();
+            var allMovies = new List<MediaItem>();
+
+            // Load ALL live channels
             try
             {
+                StatusMessage = "📺 Chargement des chaînes live...";
                 var channels = await _stalkerService.GetLiveChannelsAsync(source.Id);
-                foreach (var ch in channels.Take(300))
-                {
-                    LiveChannels.Add(ch);
-                }
+                allLive.AddRange(channels);
                 LogDebug($"Loaded {channels.Count} live channels");
             }
             catch (Exception ex)
             {
                 LogDebug($"Error loading live channels: {ex.Message}");
+                Console.WriteLine($"[Stalker] Error loading live: {ex.Message}");
             }
 
-            // Load VOD categories and first category content
+            // Load ALL VOD from ALL categories
             try
             {
                 var vodCats = await _stalkerService.GetVodCategoriesAsync();
                 if (vodCats.Count > 0)
                 {
-                    StatusMessage = $"Loading VOD: {vodCats[0].Title}...";
-                    var movies = await _stalkerService.GetVodByCategoryAsync(source.Id, vodCats[0].Id);
-                    foreach (var m in movies.Take(100))
+                    int loadedCats = 0;
+                    foreach (var cat in vodCats)
                     {
-                        Movies.Add(m);
+                        loadedCats++;
+                        StatusMessage = $"🎬 VOD [{loadedCats}/{vodCats.Count}]: {cat.Title}...";
+                        try
+                        {
+                            var movies = await _stalkerService.GetVodByCategoryAsync(source.Id, cat.Id);
+                            allMovies.AddRange(movies);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Stalker] Error loading VOD category {cat.Title}: {ex.Message}");
+                        }
                     }
-                    LogDebug($"Loaded {movies.Count} VOD items");
+                    LogDebug($"Loaded {allMovies.Count} total VOD items");
                 }
             }
             catch (Exception ex)
             {
-                LogDebug($"Error loading VOD: {ex.Message}");
+                LogDebug($"Error loading VOD categories: {ex.Message}");
+                Console.WriteLine($"[Stalker] Error loading VOD categories: {ex.Message}");
             }
 
-            _totalLiveChannels = LiveChannels.Count;
-            _totalMovies = Movies.Count;
-            _totalSeries = Series.Count;
+            // Stocker TOUT le contenu dans les listes privées (pour la recherche)
+            _allLiveChannels = allLive;
+            _allMovies = allMovies;
+            _totalLiveChannels = allLive.Count;
+            _totalMovies = allMovies.Count;
+            _totalSeries = 0;
 
-            StatusMessage = $"Stalker: {LiveChannels.Count} channels, {Movies.Count} movies";
+            // Filtrer par préférences de langue PUIS limiter pour l'UI
+            StatusMessage = $"🔍 Filtrage par préférences ({string.Join(", ", UserPreferences.PreferredLanguages)})...";
+            var filteredLive = await Task.Run(() => allLive.Where(MatchesUserPreferences).Take(MaxDisplayItems).ToList());
+            var filteredMovies = await Task.Run(() => allMovies.Where(MatchesUserPreferences).Take(MaxDisplayItems).ToList());
+
+            StatusMessage = $"⚡ Affichage de {filteredLive.Count:N0} chaînes filtrées (sur {allLive.Count:N0})...";
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                LiveChannels = new ObservableCollection<MediaItem>(filteredLive);
+                Movies = new ObservableCollection<MediaItem>(filteredMovies);
+            }, System.Windows.Threading.DispatcherPriority.Normal);
+
+            Console.WriteLine($"[Stalker] ✅ Chargement complet: {_totalLiveChannels:N0} live, {_totalMovies:N0} films (UI: {LiveChannels.Count}/{Movies.Count})");
+            StatusMessage = $"✅ Stalker: {_totalLiveChannels:N0} chaînes, {_totalMovies:N0} films";
         }
 
         private async Task EnrichContentWithTmdbAsync()
@@ -1139,12 +1242,20 @@ namespace StreamVision.ViewModels
 
         private void BuildContentRows()
         {
-            ContentRows.Clear();
+            try
+            {
+                ContentRows.Clear();
 
-            // Filter content based on user preferences
-            var filteredLive = LiveChannels.Where(MatchesUserPreferences).ToList();
-            var filteredMovies = Movies.Where(MatchesUserPreferences).ToList();
-            var filteredSeries = Series.Where(MatchesUserPreferences).ToList();
+                // Les collections LiveChannels/Movies/Series sont DÉJÀ limitées à MaxDisplayItems
+                // Le contenu COMPLET est dans _allLiveChannels/_allMovies/_allSeries pour la recherche
+
+                // Appliquer le tri intelligent (favoris implicites et récemment vus en premier)
+                // Limiter encore plus pour éviter les freezes
+                var filteredLive = SafeSmartSort(LiveChannels, 2000);
+                var filteredMovies = SafeSmartSort(Movies, 1000);
+                var filteredSeries = SafeSmartSort(Series, 1000);
+
+                Console.WriteLine($"[BuildContentRows] UI: {filteredLive.Count} live, {filteredMovies.Count} films, {filteredSeries.Count} séries (total: {_totalLiveChannels}/{_totalMovies}/{_totalSeries})");
 
             // Separate anime content for special display
             var animeMovies = new List<MediaItem>();
@@ -1191,6 +1302,31 @@ namespace StreamVision.ViewModels
                     Title = "My Favorites",
                     Icon = "❤️",
                     Items = new ObservableCollection<MediaItem>(Favorites.Take(20))
+                });
+            }
+
+            // Recommandations intelligentes (basées sur l'historique)
+            var allContent = filteredLive.Concat(filteredMovies).Concat(filteredSeries);
+            var recommendations = _smartContent.GetRecommendations(allContent, 20);
+            if (recommendations.Count > 0)
+            {
+                ContentRows.Add(new MediaRow
+                {
+                    Title = "Recommandé pour vous",
+                    Icon = "✨",
+                    Items = new ObservableCollection<MediaItem>(recommendations)
+                });
+            }
+
+            // Chaînes françaises en priorité
+            var frenchContent = filteredLive.Where(c => _smartContent.IsFrenchContent(c)).Take(20).ToList();
+            if (frenchContent.Count > 0)
+            {
+                ContentRows.Add(new MediaRow
+                {
+                    Title = "Contenu Français",
+                    Icon = "🇫🇷",
+                    Items = new ObservableCollection<MediaItem>(frenchContent)
                 });
             }
 
@@ -1314,6 +1450,12 @@ namespace StreamVision.ViewModels
                     }
                 }
             }
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"BuildContentRows error: {ex.Message}");
+                StatusMessage = "Erreur lors de la construction de l'affichage";
+            }
         }
 
         private void SelectFeaturedItem()
@@ -1405,6 +1547,9 @@ namespace StreamVision.ViewModels
                 _currentlyPlayingItem = item;
                 _playbackStartTime = DateTime.Now;
                 _recommendationEngine.StartWatching(item);
+
+                // Enregistrer dans le service intelligent (pour recommandations et tri)
+                _smartContent.RecordWatch(item);
 
                 // Pour les séries, on a besoin de charger les épisodes
                 if (item.MediaType == ContentType.Series && SelectedSource != null)
@@ -1947,19 +2092,20 @@ namespace StreamVision.ViewModels
         private void PerformSearch(string query)
         {
             SearchResults.Clear();
-            var q = query.ToLowerInvariant();
 
-            // Recherche dans tous les contenus
-            var results = LiveChannels
-                .Where(c => c.Name.ToLowerInvariant().Contains(q) || c.GroupTitle.ToLowerInvariant().Contains(q))
-                .Take(20)
-                .Concat(Movies.Where(m => m.Name.ToLowerInvariant().Contains(q) || (m.Overview?.ToLowerInvariant().Contains(q) ?? false)).Take(20))
-                .Concat(Series.Where(s => s.Name.ToLowerInvariant().Contains(q) || (s.Overview?.ToLowerInvariant().Contains(q) ?? false)).Take(20));
+            // Utiliser la recherche fuzzy intelligente (tolère les fautes de frappe)
+            var allContent = _allLiveChannels
+                .Concat(_allMovies.Count > 0 ? _allMovies : Movies.ToList())
+                .Concat(_allSeries.Count > 0 ? _allSeries : Series.ToList());
+
+            var results = _smartContent.FuzzySearch(allContent, query, 100);
 
             foreach (var item in results)
             {
                 SearchResults.Add(item);
             }
+
+            Console.WriteLine($"[Search] Fuzzy search for '{query}': {results.Count} results");
         }
 
         #endregion
@@ -1972,6 +2118,169 @@ namespace StreamVision.ViewModels
             CurrentView = view;
             if (view != "Search")
                 SearchQuery = string.Empty;
+
+            // Reconstruire les rows selon la vue sélectionnée
+            BuildContentRowsForView(view);
+        }
+
+        /// <summary>
+        /// Construit les lignes de contenu selon la vue sélectionnée
+        /// </summary>
+        private void BuildContentRowsForView(string view)
+        {
+            ContentRows.Clear();
+
+            switch (view)
+            {
+                case "Live":
+                    BuildLiveContentRows();
+                    break;
+                case "Movies":
+                    BuildMoviesContentRows();
+                    break;
+                case "Series":
+                    BuildSeriesContentRows();
+                    break;
+                case "MyList":
+                    BuildFavoritesContentRows();
+                    break;
+                default: // "Home"
+                    BuildContentRows();
+                    break;
+            }
+        }
+
+        private void BuildLiveContentRows()
+        {
+            try
+            {
+                ContentRows.Clear();
+
+                // Grouper par catégorie (limite de sécurité)
+                var liveByCategory = LiveChannels.Take(3000).GroupBy(c => c.GroupTitle).Take(20);
+                foreach (var group in liveByCategory)
+                {
+                    if (group.Any())
+                    {
+                        ContentRows.Add(new MediaRow
+                        {
+                            Title = string.IsNullOrEmpty(group.Key) ? "Autres" : group.Key,
+                            Icon = "📺",
+                            Items = new ObservableCollection<MediaItem>(group.Take(30))
+                        });
+                    }
+                }
+
+                Console.WriteLine($"[BuildLiveContentRows] {ContentRows.Count} catégories live affichées");
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"BuildLiveContentRows error: {ex.Message}");
+            }
+        }
+
+        private void BuildMoviesContentRows()
+        {
+            try
+            {
+                ContentRows.Clear();
+
+                // Films récents (limite de sécurité)
+                var recentMovies = Movies.Take(1000).OrderByDescending(m => m.ReleaseDate).Take(30).ToList();
+                if (recentMovies.Any())
+                {
+                    ContentRows.Add(new MediaRow
+                    {
+                        Title = "Films récents",
+                        Icon = "🎬",
+                        Items = new ObservableCollection<MediaItem>(recentMovies)
+                    });
+                }
+
+                // Grouper par catégorie
+                var moviesByCategory = Movies.Take(1000).GroupBy(m => m.GroupTitle).Take(15);
+                foreach (var group in moviesByCategory)
+                {
+                    if (group.Any())
+                    {
+                        ContentRows.Add(new MediaRow
+                        {
+                            Title = string.IsNullOrEmpty(group.Key) ? "Autres" : group.Key,
+                            Icon = "🎬",
+                            Items = new ObservableCollection<MediaItem>(group.Take(30))
+                        });
+                    }
+                }
+
+                Console.WriteLine($"[BuildMoviesContentRows] {ContentRows.Count} catégories films affichées");
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"BuildMoviesContentRows error: {ex.Message}");
+            }
+        }
+
+        private void BuildSeriesContentRows()
+        {
+            try
+            {
+                ContentRows.Clear();
+
+                // Grouper par catégorie (limite de sécurité)
+                var seriesByCategory = Series.Take(1000).GroupBy(s => s.GroupTitle).Take(15);
+                foreach (var group in seriesByCategory)
+                {
+                    if (group.Any())
+                    {
+                        ContentRows.Add(new MediaRow
+                        {
+                            Title = string.IsNullOrEmpty(group.Key) ? "Autres" : group.Key,
+                            Icon = "📺",
+                            Items = new ObservableCollection<MediaItem>(group.Take(30))
+                        });
+                    }
+                }
+
+                Console.WriteLine($"[BuildSeriesContentRows] {ContentRows.Count} catégories séries affichées");
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"BuildSeriesContentRows error: {ex.Message}");
+            }
+        }
+
+        private void BuildFavoritesContentRows()
+        {
+            try
+            {
+                ContentRows.Clear();
+
+                if (Favorites.Count > 0)
+                {
+                    ContentRows.Add(new MediaRow
+                    {
+                        Title = "Mes Favoris",
+                        Icon = "❤️",
+                        Items = new ObservableCollection<MediaItem>(Favorites.Take(100))
+                    });
+                }
+
+                if (ContinueWatching.Count > 0)
+                {
+                    ContentRows.Add(new MediaRow
+                    {
+                        Title = "Continuer à regarder",
+                        Icon = "▶️",
+                        Items = new ObservableCollection<MediaItem>(ContinueWatching.Take(50))
+                    });
+                }
+
+                Console.WriteLine($"[BuildFavoritesContentRows] {Favorites.Count} favoris, {ContinueWatching.Count} en cours");
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"BuildFavoritesContentRows error: {ex.Message}");
+            }
         }
 
         [RelayCommand]
@@ -2456,6 +2765,58 @@ namespace StreamVision.ViewModels
             // LibVLC subtitle styling is limited, but we can set some options
             // Real implementation would use VLC's freetype module options
             LogDebug($"Subtitle settings applied: font={SubtitleSettings.FontFamily}, size={SubtitleSettings.FontSize}");
+        }
+
+        #endregion
+
+        #region Safety Helpers
+
+        /// <summary>
+        /// Tri intelligent avec limite de sécurité pour éviter les freezes
+        /// </summary>
+        private List<MediaItem> SafeSmartSort(IEnumerable<MediaItem> items, int maxItems)
+        {
+            try
+            {
+                var list = items?.Take(maxItems).ToList() ?? new List<MediaItem>();
+                return _smartContent.SmartSort(list);
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"SafeSmartSort error: {ex.Message}");
+                return items?.Take(maxItems).ToList() ?? new List<MediaItem>();
+            }
+        }
+
+        /// <summary>
+        /// Exécute une action de manière sécurisée
+        /// </summary>
+        private void SafeExecute(Action action, string context = "")
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"SafeExecute error in {context}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Exécute une action async de manière sécurisée
+        /// </summary>
+        private async Task SafeExecuteAsync(Func<Task> action, string context = "")
+        {
+            try
+            {
+                await action();
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"SafeExecuteAsync error in {context}: {ex.Message}");
+                StatusMessage = $"Erreur: {ex.Message}";
+            }
         }
 
         #endregion

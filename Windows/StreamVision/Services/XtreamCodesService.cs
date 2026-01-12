@@ -18,10 +18,13 @@ namespace StreamVision.Services
         private readonly HttpClient _httpClient;
         private XtreamAccountInfo? _currentAccount;
 
+        // Cache des catégories pour éviter requêtes répétitives
+        private readonly Dictionary<string, (List<XtreamCategory> Categories, DateTime CachedAt)> _categoryCache = new();
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
+
         public XtreamCodesService()
         {
-            _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
-            // User-Agent requis par certains serveurs IPTV qui bloquent les requêtes sans header navigateur
+            _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         }
 
@@ -29,6 +32,14 @@ namespace StreamVision.Services
 
         // Dernier message d'erreur pour l'utilisateur
         public string LastError { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Vide le cache des catégories (utile lors du rafraîchissement)
+        /// </summary>
+        public void ClearCache()
+        {
+            _categoryCache.Clear();
+        }
 
         #region Authentication
 
@@ -158,10 +169,21 @@ namespace StreamVision.Services
 
         private async Task<List<XtreamCategory>> GetCategoriesAsync(string serverUrl, string username, string password, string action)
         {
+            serverUrl = NormalizeServerUrl(serverUrl);
+            var cacheKey = $"{serverUrl}|{username}|{action}";
+
+            // Vérifier le cache
+            if (_categoryCache.TryGetValue(cacheKey, out var cached))
+            {
+                if (DateTime.Now - cached.CachedAt < CacheDuration)
+                {
+                    return cached.Categories;
+                }
+            }
+
             var categories = new List<XtreamCategory>();
             try
             {
-                serverUrl = NormalizeServerUrl(serverUrl);
                 var url = $"{serverUrl}/player_api.php?username={username}&password={password}&action={action}";
                 var response = await _httpClient.GetStringAsync(url);
                 var json = JArray.Parse(response);
@@ -175,8 +197,14 @@ namespace StreamVision.Services
                         ParentId = item["parent_id"]?.ToString() ?? "0"
                     });
                 }
+
+                // Mettre en cache
+                _categoryCache[cacheKey] = (categories, DateTime.Now);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Xtream] Error loading categories ({action}): {ex.Message}");
+            }
             return categories;
         }
 
@@ -221,7 +249,10 @@ namespace StreamVision.Services
                     });
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Xtream] Error loading live streams: {ex.Message}");
+            }
             return items;
         }
 
@@ -295,7 +326,10 @@ namespace StreamVision.Services
                     items.Add(mediaItem);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Xtream] Error loading VOD streams: {ex.Message}");
+            }
             return items;
         }
 
@@ -329,8 +363,9 @@ namespace StreamVision.Services
                     ContainerExtension = movieData?["container_extension"]?.ToString() ?? "mp4"
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[Xtream] Error loading VOD info for {vodId}: {ex.Message}");
                 return null;
             }
         }
@@ -382,7 +417,10 @@ namespace StreamVision.Services
                     });
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Xtream] Error loading series: {ex.Message}");
+            }
             return items;
         }
 
@@ -454,8 +492,9 @@ namespace StreamVision.Services
 
                 return seriesInfo;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[Xtream] Error loading series info for {seriesId}: {ex.Message}");
                 return null;
             }
         }
@@ -510,7 +549,10 @@ namespace StreamVision.Services
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Xtream] Error loading EPG for stream {streamId}: {ex.Message}");
+            }
             return entries;
         }
 
