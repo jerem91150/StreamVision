@@ -661,6 +661,644 @@ namespace StreamVision.Services
             _categoryStats.Clear();
             await SaveUserDataAsync();
         }
+
+        #region Content-Based Similarity for MediaItems
+
+        /// <summary>
+        /// Calculate content similarity between two media items.
+        /// Uses genres, director, cast, decade, and rating for scoring.
+        /// </summary>
+        public double CalculateContentSimilarity(MediaItem a, MediaItem b)
+        {
+            if (a == null || b == null || a.Id == b.Id) return 0;
+
+            double score = 0;
+
+            // 1. Genres in common (40% weight)
+            score += CalculateGenreSimilarity(a, b) * 0.40;
+
+            // 2. Same director (20% weight)
+            score += CalculateDirectorSimilarity(a, b) * 0.20;
+
+            // 3. Cast overlap (20% weight)
+            score += CalculateCastSimilarity(a, b) * 0.20;
+
+            // 4. Same decade (10% weight)
+            score += CalculateDecadeSimilarity(a, b) * 0.10;
+
+            // 5. Similar rating ±1 (10% weight)
+            score += CalculateRatingSimilarity(a, b) * 0.10;
+
+            return Math.Min(score, 1.0);
+        }
+
+        private double CalculateGenreSimilarity(MediaItem a, MediaItem b)
+        {
+            var genresA = ParseList(a.Genres);
+            var genresB = ParseList(b.Genres);
+
+            if (genresA.Count == 0 || genresB.Count == 0) return 0;
+
+            var commonGenres = genresA.Intersect(genresB, StringComparer.OrdinalIgnoreCase).Count();
+            return (double)commonGenres / Math.Max(genresA.Count, genresB.Count);
+        }
+
+        private double CalculateDirectorSimilarity(MediaItem a, MediaItem b)
+        {
+            if (string.IsNullOrWhiteSpace(a.Director) || string.IsNullOrWhiteSpace(b.Director))
+                return 0;
+
+            // Parse directors (could be multiple)
+            var directorsA = ParseList(a.Director);
+            var directorsB = ParseList(b.Director);
+
+            return directorsA.Intersect(directorsB, StringComparer.OrdinalIgnoreCase).Any() ? 1.0 : 0;
+        }
+
+        private double CalculateCastSimilarity(MediaItem a, MediaItem b)
+        {
+            var castA = ParseList(a.Cast);
+            var castB = ParseList(b.Cast);
+
+            if (castA.Count == 0 || castB.Count == 0) return 0;
+
+            var commonCast = castA.Intersect(castB, StringComparer.OrdinalIgnoreCase).Count();
+            // More lenient: any 2 common actors is a good signal
+            return Math.Min((double)commonCast / 2.0, 1.0);
+        }
+
+        private double CalculateDecadeSimilarity(MediaItem a, MediaItem b)
+        {
+            if (!a.ReleaseDate.HasValue || !b.ReleaseDate.HasValue) return 0;
+
+            int decadeA = a.ReleaseDate.Value.Year / 10;
+            int decadeB = b.ReleaseDate.Value.Year / 10;
+
+            return decadeA == decadeB ? 1.0 : 0;
+        }
+
+        private double CalculateRatingSimilarity(MediaItem a, MediaItem b)
+        {
+            // Both should have valid ratings
+            if (a.Rating <= 0 || b.Rating <= 0) return 0;
+
+            double ratingDiff = Math.Abs(a.Rating - b.Rating);
+            // Full score if within 1 point, partial for up to 2 points
+            if (ratingDiff <= 1) return 1.0;
+            if (ratingDiff <= 2) return 0.5;
+            return 0;
+        }
+
+        private List<string> ParseList(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return new List<string>();
+
+            return value.Split(new[] { ',', '|', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get content similar to a given media item based on content attributes.
+        /// </summary>
+        public IEnumerable<MediaItem> GetSimilarContent(MediaItem sourceItem, IEnumerable<MediaItem> allItems, int count = 10)
+        {
+            if (sourceItem == null || allItems == null) return Enumerable.Empty<MediaItem>();
+
+            return allItems
+                .Where(item => item.Id != sourceItem.Id)
+                .Select(item => new { Item = item, Score = CalculateContentSimilarity(sourceItem, item) })
+                .Where(x => x.Score > 0.15) // Minimum similarity threshold
+                .OrderByDescending(x => x.Score)
+                .Take(count)
+                .Select(x => x.Item);
+        }
+
+        /// <summary>
+        /// Get recommendations for media items (movies/series) using content-based filtering.
+        /// </summary>
+        public async Task<List<RecommendationSection>> GetMediaRecommendationsAsync(
+            IEnumerable<MediaItem> allItems,
+            MediaItem? lastWatchedItem = null)
+        {
+            var sections = new List<RecommendationSection>();
+            var itemsList = allItems.ToList();
+
+            // 1. Continue Watching (items with progress)
+            var continueWatching = GetContinueWatchingMedia(itemsList);
+            if (continueWatching.Items.Count > 0)
+                sections.Add(continueWatching);
+
+            // 2. Similar to last watched
+            if (lastWatchedItem != null)
+            {
+                var similarSection = GetSimilarToSection(lastWatchedItem, itemsList);
+                if (similarSection.Items.Count > 0)
+                    sections.Add(similarSection);
+            }
+
+            // 3. Top Rated
+            var topRated = GetTopRatedMedia(itemsList);
+            if (topRated.Items.Count > 0)
+                sections.Add(topRated);
+
+            // 4. Hidden Gems (good rating but less popular)
+            var hiddenGems = GetHiddenGemsMedia(itemsList);
+            if (hiddenGems.Items.Count > 0)
+                sections.Add(hiddenGems);
+
+            // 5. New Releases
+            var newReleases = GetNewReleasesMedia(itemsList);
+            if (newReleases.Items.Count > 0)
+                sections.Add(newReleases);
+
+            // 6. Genre-based recommendations (based on user's favorite genres)
+            var genreSections = await GetGenreBasedSectionsAsync(itemsList);
+            sections.AddRange(genreSections);
+
+            return sections;
+        }
+
+        private RecommendationSection GetContinueWatchingMedia(List<MediaItem> items)
+        {
+            var section = new RecommendationSection
+            {
+                Title = "Reprendre la lecture",
+                Subtitle = "Continuez où vous en étiez",
+                Type = RecommendationType.ContinueWatching
+            };
+
+            var continueItems = items
+                .Where(i => i.HasProgress && i.WatchProgress < 90)
+                .OrderByDescending(i => i.LastWatched)
+                .Take(15);
+
+            foreach (var item in continueItems)
+            {
+                section.Items.Add(CreateRecommendationItem(item,
+                    $"{item.WatchProgress}% regardé",
+                    RecommendationType.ContinueWatching,
+                    1.0));
+            }
+
+            return section;
+        }
+
+        private RecommendationSection GetSimilarToSection(MediaItem sourceItem, List<MediaItem> items)
+        {
+            var section = new RecommendationSection
+            {
+                Title = $"Similaire à {sourceItem.Name}",
+                Subtitle = "Vous pourriez aussi aimer",
+                Type = RecommendationType.BecauseYouWatched
+            };
+
+            var similarItems = GetSimilarContent(sourceItem, items, 15);
+
+            foreach (var item in similarItems)
+            {
+                var score = CalculateContentSimilarity(sourceItem, item);
+                var reason = BuildSimilarityReason(sourceItem, item);
+                section.Items.Add(CreateRecommendationItem(item, reason, RecommendationType.BecauseYouWatched, score));
+            }
+
+            return section;
+        }
+
+        private string BuildSimilarityReason(MediaItem source, MediaItem target)
+        {
+            var reasons = new List<string>();
+
+            // Check genre match
+            var sourceGenres = ParseList(source.Genres);
+            var targetGenres = ParseList(target.Genres);
+            var commonGenres = sourceGenres.Intersect(targetGenres, StringComparer.OrdinalIgnoreCase).Take(2).ToList();
+            if (commonGenres.Count > 0)
+            {
+                reasons.Add(string.Join(", ", commonGenres));
+            }
+
+            // Check director match
+            if (!string.IsNullOrWhiteSpace(source.Director) &&
+                source.Director.Equals(target.Director, StringComparison.OrdinalIgnoreCase))
+            {
+                reasons.Add($"Même réalisateur");
+            }
+
+            // Check cast overlap
+            var sourceCast = ParseList(source.Cast);
+            var targetCast = ParseList(target.Cast);
+            var commonActor = sourceCast.Intersect(targetCast, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+            if (commonActor != null)
+            {
+                reasons.Add($"Avec {commonActor}");
+            }
+
+            return reasons.Count > 0 ? string.Join(" • ", reasons.Take(2)) : "Contenu similaire";
+        }
+
+        private RecommendationSection GetTopRatedMedia(List<MediaItem> items)
+        {
+            var section = new RecommendationSection
+            {
+                Title = "Les mieux notés",
+                Subtitle = "Plébiscités par les spectateurs",
+                Type = RecommendationType.TopPicksForYou
+            };
+
+            var topRated = items
+                .Where(i => i.Rating >= 7.0 && i.VoteCount >= 100)
+                .OrderByDescending(i => i.Rating)
+                .ThenByDescending(i => i.VoteCount)
+                .Take(20);
+
+            foreach (var item in topRated)
+            {
+                section.Items.Add(CreateRecommendationItem(item,
+                    $"★ {item.Rating:F1} ({item.VoteCount} votes)",
+                    RecommendationType.TopPicksForYou,
+                    item.Rating / 10.0));
+            }
+
+            return section;
+        }
+
+        private RecommendationSection GetHiddenGemsMedia(List<MediaItem> items)
+        {
+            var section = new RecommendationSection
+            {
+                Title = "Pépites cachées",
+                Subtitle = "Des trésors à découvrir",
+                Type = RecommendationType.HiddenGems
+            };
+
+            // Good rating but fewer votes (less mainstream)
+            var hiddenGems = items
+                .Where(i => i.Rating >= 7.5 && i.VoteCount > 10 && i.VoteCount < 1000)
+                .OrderByDescending(i => i.Rating)
+                .Take(15);
+
+            foreach (var item in hiddenGems)
+            {
+                section.Items.Add(CreateRecommendationItem(item,
+                    $"★ {item.Rating:F1} - À découvrir",
+                    RecommendationType.HiddenGems,
+                    item.Rating / 10.0));
+            }
+
+            return section;
+        }
+
+        private RecommendationSection GetNewReleasesMedia(List<MediaItem> items)
+        {
+            var section = new RecommendationSection
+            {
+                Title = "Sorties récentes",
+                Subtitle = "Les dernières nouveautés",
+                Type = RecommendationType.TrendingNow
+            };
+
+            var cutoffDate = DateTime.Now.AddYears(-2);
+            var newReleases = items
+                .Where(i => i.ReleaseDate.HasValue && i.ReleaseDate.Value >= cutoffDate)
+                .OrderByDescending(i => i.ReleaseDate)
+                .Take(20);
+
+            foreach (var item in newReleases)
+            {
+                var year = item.ReleaseDate?.Year.ToString() ?? "Récent";
+                section.Items.Add(CreateRecommendationItem(item,
+                    year,
+                    RecommendationType.TrendingNow,
+                    0.8));
+            }
+
+            return section;
+        }
+
+        private Task<List<RecommendationSection>> GetGenreBasedSectionsAsync(List<MediaItem> items)
+        {
+            var sections = new List<RecommendationSection>();
+
+            // Extract all genres and count
+            var genreCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in items)
+            {
+                foreach (var genre in ParseList(item.Genres))
+                {
+                    if (!genreCounts.ContainsKey(genre))
+                        genreCounts[genre] = 0;
+                    genreCounts[genre]++;
+                }
+            }
+
+            // Get top 3 genres with enough content
+            var topGenres = genreCounts
+                .Where(g => g.Value >= 5)
+                .OrderByDescending(g => g.Value)
+                .Take(3)
+                .Select(g => g.Key);
+
+            foreach (var genre in topGenres)
+            {
+                var section = new RecommendationSection
+                {
+                    Title = genre,
+                    Subtitle = $"Les meilleurs films {genre.ToLower()}",
+                    Type = RecommendationType.CategoryRecommendation
+                };
+
+                var genreItems = items
+                    .Where(i => ParseList(i.Genres).Contains(genre, StringComparer.OrdinalIgnoreCase))
+                    .Where(i => i.Rating >= 6.0)
+                    .OrderByDescending(i => i.Rating)
+                    .Take(15);
+
+                foreach (var item in genreItems)
+                {
+                    section.Items.Add(CreateRecommendationItem(item,
+                        $"★ {item.Rating:F1}",
+                        RecommendationType.CategoryRecommendation,
+                        item.Rating / 10.0));
+                }
+
+                if (section.Items.Count >= 3)
+                    sections.Add(section);
+            }
+
+            return Task.FromResult(sections);
+        }
+
+        /// <summary>
+        /// Get personalized recommendations based on user's watch history and preferences.
+        /// Uses collaborative filtering combined with content-based filtering.
+        /// </summary>
+        public async Task<List<RecommendationSection>> GetPersonalizedMediaRecommendationsAsync(
+            IEnumerable<MediaItem> allItems)
+        {
+            var sections = new List<RecommendationSection>();
+            var itemsList = allItems.ToList();
+
+            // Build user profile from watch history
+            var userProfile = BuildUserProfile(itemsList);
+
+            // 1. For You - based on weighted user preferences
+            var forYouSection = GetForYouSection(itemsList, userProfile);
+            if (forYouSection.Items.Count > 0)
+                sections.Add(forYouSection);
+
+            // 2. Because you liked [genre]
+            foreach (var favoriteGenre in userProfile.TopGenres.Take(2))
+            {
+                var genreSection = GetBecauseYouLikedGenreSection(itemsList, favoriteGenre, userProfile);
+                if (genreSection.Items.Count > 0)
+                    sections.Add(genreSection);
+            }
+
+            return sections;
+        }
+
+        private UserMediaProfile BuildUserProfile(List<MediaItem> items)
+        {
+            var profile = new UserMediaProfile();
+
+            // Get watched/favorited items
+            var interactedItems = items
+                .Where(i => i.IsFavorite || i.HasProgress)
+                .ToList();
+
+            if (interactedItems.Count == 0)
+            {
+                // Cold start: use all items to determine popular genres
+                foreach (var item in items.Take(100))
+                {
+                    foreach (var genre in ParseList(item.Genres))
+                    {
+                        if (!profile.GenreScores.ContainsKey(genre))
+                            profile.GenreScores[genre] = 0;
+                        profile.GenreScores[genre] += 0.1;
+                    }
+                }
+            }
+            else
+            {
+                // Build profile from user interactions
+                foreach (var item in interactedItems)
+                {
+                    double weight = item.IsFavorite ? 2.0 : 1.0;
+                    if (item.WatchProgress > 80) weight *= 1.5;
+
+                    foreach (var genre in ParseList(item.Genres))
+                    {
+                        if (!profile.GenreScores.ContainsKey(genre))
+                            profile.GenreScores[genre] = 0;
+                        profile.GenreScores[genre] += weight;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(item.Director))
+                    {
+                        foreach (var director in ParseList(item.Director))
+                        {
+                            if (!profile.DirectorScores.ContainsKey(director))
+                                profile.DirectorScores[director] = 0;
+                            profile.DirectorScores[director] += weight;
+                        }
+                    }
+
+                    foreach (var actor in ParseList(item.Cast).Take(3))
+                    {
+                        if (!profile.ActorScores.ContainsKey(actor))
+                            profile.ActorScores[actor] = 0;
+                        profile.ActorScores[actor] += weight;
+                    }
+                }
+            }
+
+            // Determine top genres
+            profile.TopGenres = profile.GenreScores
+                .OrderByDescending(g => g.Value)
+                .Take(5)
+                .Select(g => g.Key)
+                .ToList();
+
+            return profile;
+        }
+
+        private RecommendationSection GetForYouSection(List<MediaItem> items, UserMediaProfile profile)
+        {
+            var section = new RecommendationSection
+            {
+                Title = "Pour vous",
+                Subtitle = "Sélection personnalisée",
+                Type = RecommendationType.TopPicksForYou
+            };
+
+            var watchedIds = items
+                .Where(i => i.HasProgress && i.WatchProgress > 80)
+                .Select(i => i.Id)
+                .ToHashSet();
+
+            var scoredItems = items
+                .Where(i => !watchedIds.Contains(i.Id))
+                .Select(i => new { Item = i, Score = CalculatePersonalizedScore(i, profile) })
+                .Where(x => x.Score > 0.2)
+                .OrderByDescending(x => x.Score)
+                .Take(20);
+
+            foreach (var scored in scoredItems)
+            {
+                var reason = GetPersonalizedReason(scored.Item, profile);
+                section.Items.Add(CreateRecommendationItem(scored.Item, reason,
+                    RecommendationType.TopPicksForYou, scored.Score));
+            }
+
+            return section;
+        }
+
+        private double CalculatePersonalizedScore(MediaItem item, UserMediaProfile profile)
+        {
+            double score = 0;
+            double maxGenreScore = profile.GenreScores.Values.DefaultIfEmpty(1).Max();
+
+            // Genre match (50%)
+            foreach (var genre in ParseList(item.Genres))
+            {
+                if (profile.GenreScores.TryGetValue(genre, out var genreScore))
+                {
+                    score += (genreScore / maxGenreScore) * 0.50 / ParseList(item.Genres).Count;
+                }
+            }
+
+            // Director match (20%)
+            foreach (var director in ParseList(item.Director))
+            {
+                if (profile.DirectorScores.ContainsKey(director))
+                {
+                    score += 0.20;
+                    break;
+                }
+            }
+
+            // Cast match (20%)
+            foreach (var actor in ParseList(item.Cast))
+            {
+                if (profile.ActorScores.ContainsKey(actor))
+                {
+                    score += 0.05; // Up to 0.20 with 4 matching actors
+                }
+            }
+            score = Math.Min(score, 0.90); // Cap cast contribution
+
+            // Rating boost (10%)
+            if (item.Rating >= 7.0)
+            {
+                score += 0.10 * (item.Rating / 10.0);
+            }
+
+            return Math.Min(score, 1.0);
+        }
+
+        private string GetPersonalizedReason(MediaItem item, UserMediaProfile profile)
+        {
+            var reasons = new List<string>();
+
+            // Find matching genre
+            var matchingGenre = ParseList(item.Genres)
+                .FirstOrDefault(g => profile.TopGenres.Contains(g, StringComparer.OrdinalIgnoreCase));
+            if (matchingGenre != null)
+            {
+                reasons.Add(matchingGenre);
+            }
+
+            // Find matching director
+            var matchingDirector = ParseList(item.Director)
+                .FirstOrDefault(d => profile.DirectorScores.ContainsKey(d));
+            if (matchingDirector != null)
+            {
+                reasons.Add($"De {matchingDirector}");
+            }
+
+            // Find matching actor
+            var matchingActor = ParseList(item.Cast)
+                .FirstOrDefault(a => profile.ActorScores.ContainsKey(a));
+            if (matchingActor != null)
+            {
+                reasons.Add($"Avec {matchingActor}");
+            }
+
+            if (item.Rating >= 8.0)
+            {
+                reasons.Add($"★ {item.Rating:F1}");
+            }
+
+            return reasons.Count > 0 ? string.Join(" • ", reasons.Take(2)) : "Recommandé pour vous";
+        }
+
+        private RecommendationSection GetBecauseYouLikedGenreSection(
+            List<MediaItem> items, string genre, UserMediaProfile profile)
+        {
+            var section = new RecommendationSection
+            {
+                Title = $"Parce que vous aimez {genre}",
+                Subtitle = "D'autres films du même genre",
+                Type = RecommendationType.CategoryRecommendation
+            };
+
+            var watchedIds = items
+                .Where(i => i.HasProgress && i.WatchProgress > 50)
+                .Select(i => i.Id)
+                .ToHashSet();
+
+            var genreItems = items
+                .Where(i => ParseList(i.Genres).Contains(genre, StringComparer.OrdinalIgnoreCase))
+                .Where(i => !watchedIds.Contains(i.Id))
+                .Where(i => i.Rating >= 6.5)
+                .OrderByDescending(i => i.Rating)
+                .ThenByDescending(i => i.VoteCount)
+                .Take(15);
+
+            foreach (var item in genreItems)
+            {
+                section.Items.Add(CreateRecommendationItem(item,
+                    $"★ {item.Rating:F1}",
+                    RecommendationType.CategoryRecommendation,
+                    item.Rating / 10.0));
+            }
+
+            return section;
+        }
+
+        private RecommendationItem CreateRecommendationItem(MediaItem item, string reason,
+            RecommendationType type, double score)
+        {
+            return new RecommendationItem
+            {
+                ChannelId = item.Id,
+                ChannelName = item.Name ?? "Unknown",
+                LogoUrl = item.PosterUrl ?? item.LogoUrl ?? "",
+                Category = item.GroupTitle ?? item.Genres?.Split(',').FirstOrDefault() ?? "Unknown",
+                StreamUrl = item.StreamUrl ?? "",
+                Score = score,
+                Reason = reason,
+                Type = type,
+                WatchedPercentage = (int)item.WatchProgress,
+                LastWatched = item.LastWatched
+            };
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// User media profile for personalized recommendations
+    /// </summary>
+    public class UserMediaProfile
+    {
+        public Dictionary<string, double> GenreScores { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, double> DirectorScores { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, double> ActorScores { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<string> TopGenres { get; set; } = new();
     }
 
     public class UserStats

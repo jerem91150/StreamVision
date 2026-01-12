@@ -28,6 +28,7 @@ namespace StreamVision.ViewModels
         private readonly ContentAnalyzerService _contentAnalyzer;
         private readonly StreamOptimizerService _streamOptimizer;
         private readonly SmartContentService _smartContent;
+        private readonly ImageCacheService _imageCacheService;
 
         // New enhanced services (initialized after LibVLC)
         private ChannelPreloaderService? _channelPreloader;
@@ -42,6 +43,7 @@ namespace StreamVision.ViewModels
         private MediaItem? _currentlyPlayingItem;
         private DateTime _playbackStartTime;
         private string? _currentStreamUrl;
+        private bool _isDisposed;
 
         // LibVLCSharp pour la lecture vidéo
         private LibVLC? _libVLC;
@@ -310,6 +312,39 @@ namespace StreamVision.ViewModels
         [ObservableProperty]
         private bool _isChannelPreloading;
 
+        // Sorting and Filtering
+        [ObservableProperty]
+        private SortOption _currentSortOption = SortOption.Default;
+
+        [ObservableProperty]
+        private string _currentSortDisplay = "Recommandé";
+
+        [ObservableProperty]
+        private ContentFilter _activeFilter = new();
+
+        [ObservableProperty]
+        private bool _hasActiveFilters;
+
+        [ObservableProperty]
+        private string _filterSummary = "Aucun filtre";
+
+        // Enrichment progress
+        [ObservableProperty]
+        private bool _isEnrichingContent;
+
+        [ObservableProperty]
+        private int _enrichmentProgress;
+
+        [ObservableProperty]
+        private int _enrichmentTotal;
+
+        [ObservableProperty]
+        private string _enrichmentStatus = "";
+
+        // Available genres for filtering
+        [ObservableProperty]
+        private ObservableCollection<string> _availableGenres = new();
+
         #endregion
 
         #region Computed Properties
@@ -332,6 +367,7 @@ namespace StreamVision.ViewModels
             _contentAnalyzer = new ContentAnalyzerService();
             _streamOptimizer = new StreamOptimizerService();
             _smartContent = new SmartContentService();
+            _imageCacheService = new ImageCacheService();
 
             // Initialize services that don't need LibVLC
             _bingeModeService = new BingeModeService();
@@ -1231,14 +1267,240 @@ namespace StreamVision.ViewModels
 
             try
             {
-                // Enrichir les films
-                await _tmdbService.EnrichMediaItemsAsync(Movies.Take(50), 3);
+                IsEnrichingContent = true;
 
-                // Enrichir les séries
-                await _tmdbService.EnrichMediaItemsAsync(Series.Take(50), 3);
+                // First, load cached metadata from database
+                await LoadCachedMetadataAsync().ConfigureAwait(false);
+
+                // Then progressively enrich remaining content
+                await EnrichContentProgressivelyAsync().ConfigureAwait(false);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                App.LogWarning($"Content enrichment error: {ex.Message}");
+            }
+            finally
+            {
+                IsEnrichingContent = false;
+                EnrichmentStatus = "";
+            }
         }
+
+        private async Task LoadCachedMetadataAsync()
+        {
+            try
+            {
+                await _databaseService.InitializeAsync().ConfigureAwait(false);
+
+                // Get all media IDs that need metadata
+                var movieIds = Movies.Select(m => m.Id).ToList();
+                var seriesIds = Series.Select(s => s.Id).ToList();
+                var allIds = movieIds.Concat(seriesIds).ToList();
+
+                if (allIds.Count == 0) return;
+
+                EnrichmentStatus = "Chargement du cache...";
+
+                // Load cached metadata in batches
+                const int batchSize = 100;
+                var cachedCount = 0;
+
+                for (int i = 0; i < allIds.Count; i += batchSize)
+                {
+                    var batch = allIds.Skip(i).Take(batchSize).ToList();
+                    var cachedMetadata = await _databaseService.GetCachedMetadataBatchAsync(batch).ConfigureAwait(false);
+
+                    foreach (var kvp in cachedMetadata)
+                    {
+                        // Apply to movies
+                        var movie = Movies.FirstOrDefault(m => m.Id == kvp.Key);
+                        if (movie != null)
+                        {
+                            kvp.Value.ApplyTo(movie);
+                            cachedCount++;
+                        }
+
+                        // Apply to series
+                        var series = Series.FirstOrDefault(s => s.Id == kvp.Key);
+                        if (series != null)
+                        {
+                            kvp.Value.ApplyTo(series);
+                            cachedCount++;
+                        }
+                    }
+                }
+
+                if (cachedCount > 0)
+                {
+                    App.LogInfo($"Loaded {cachedCount} cached metadata entries");
+                    EnrichmentStatus = $"{cachedCount} éléments depuis le cache";
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogWarning($"Failed to load cached metadata: {ex.Message}");
+            }
+        }
+
+        private async Task EnrichContentProgressivelyAsync()
+        {
+            // Get items that still need enrichment (no TMDb ID or empty overview)
+            var moviesToEnrich = Movies
+                .Where(m => m.TmdbId == 0 || string.IsNullOrEmpty(m.Overview))
+                .ToList();
+
+            var seriesToEnrich = Series
+                .Where(s => s.TmdbId == 0 || string.IsNullOrEmpty(s.Overview))
+                .ToList();
+
+            EnrichmentTotal = moviesToEnrich.Count + seriesToEnrich.Count;
+            EnrichmentProgress = 0;
+
+            if (EnrichmentTotal == 0)
+            {
+                EnrichmentStatus = "Tout le contenu est enrichi";
+                return;
+            }
+
+            EnrichmentStatus = $"Enrichissement de {EnrichmentTotal} éléments...";
+
+            const int batchSize = 20;
+            const int concurrentRequests = 3;
+            var metadataToSave = new List<CachedMediaMetadata>();
+
+            // Enrich movies
+            for (int i = 0; i < moviesToEnrich.Count; i += batchSize)
+            {
+                var batch = moviesToEnrich.Skip(i).Take(batchSize).ToList();
+
+                try
+                {
+                    await _tmdbService.EnrichMediaItemsAsync(batch, concurrentRequests).ConfigureAwait(false);
+
+                    // Save to cache
+                    foreach (var movie in batch.Where(m => m.TmdbId > 0))
+                    {
+                        metadataToSave.Add(CachedMediaMetadata.FromMediaItem(movie));
+                    }
+
+                    EnrichmentProgress = Math.Min(i + batchSize, moviesToEnrich.Count);
+                    EnrichmentStatus = $"Films: {EnrichmentProgress}/{moviesToEnrich.Count}";
+                }
+                catch (Exception ex)
+                {
+                    App.LogWarning($"Batch enrichment failed: {ex.Message}");
+                }
+
+                // Small delay to avoid rate limiting
+                await Task.Delay(200).ConfigureAwait(false);
+            }
+
+            // Enrich series
+            for (int i = 0; i < seriesToEnrich.Count; i += batchSize)
+            {
+                var batch = seriesToEnrich.Skip(i).Take(batchSize).ToList();
+
+                try
+                {
+                    await _tmdbService.EnrichMediaItemsAsync(batch, concurrentRequests).ConfigureAwait(false);
+
+                    // Save to cache
+                    foreach (var series in batch.Where(s => s.TmdbId > 0))
+                    {
+                        metadataToSave.Add(CachedMediaMetadata.FromMediaItem(series));
+                    }
+
+                    EnrichmentProgress = moviesToEnrich.Count + Math.Min(i + batchSize, seriesToEnrich.Count);
+                    EnrichmentStatus = $"Séries: {i + batch.Count}/{seriesToEnrich.Count}";
+                }
+                catch (Exception ex)
+                {
+                    App.LogWarning($"Batch enrichment failed: {ex.Message}");
+                }
+
+                await Task.Delay(200).ConfigureAwait(false);
+            }
+
+            // Save all metadata to database
+            if (metadataToSave.Count > 0)
+            {
+                try
+                {
+                    EnrichmentStatus = "Sauvegarde du cache...";
+                    await _databaseService.SaveCachedMetadataBatchAsync(metadataToSave).ConfigureAwait(false);
+                    App.LogInfo($"Saved {metadataToSave.Count} metadata entries to cache");
+                }
+                catch (Exception ex)
+                {
+                    App.LogWarning($"Failed to save metadata cache: {ex.Message}");
+                }
+            }
+
+            // Extract available genres for filtering
+            ExtractAvailableGenres();
+
+            EnrichmentStatus = $"Enrichi: {metadataToSave.Count} éléments";
+        }
+
+        private void ExtractAvailableGenres()
+        {
+            var genres = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var movie in Movies.Where(m => !string.IsNullOrEmpty(m.Genres)))
+            {
+                foreach (var genre in movie.Genres!.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    genres.Add(genre.Trim());
+                }
+            }
+
+            foreach (var series in Series.Where(s => !string.IsNullOrEmpty(s.Genres)))
+            {
+                foreach (var genre in series.Genres!.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    genres.Add(genre.Trim());
+                }
+            }
+
+            AvailableGenres = new ObservableCollection<string>(genres.OrderBy(g => g));
+        }
+
+        /// <summary>
+        /// Change sort option and rebuild content rows
+        /// </summary>
+        public void SetSortOption(SortOption option)
+        {
+            CurrentSortOption = option;
+            CurrentSortDisplay = option.GetDisplayName();
+            BuildContentRows();
+        }
+
+        /// <summary>
+        /// Apply content filter and rebuild content rows
+        /// </summary>
+        public void ApplyFilter(ContentFilter filter)
+        {
+            ActiveFilter = filter;
+            HasActiveFilters = filter.HasActiveFilters;
+            FilterSummary = filter.GetSummary();
+            BuildContentRows();
+        }
+
+        /// <summary>
+        /// Clear all filters
+        /// </summary>
+        public void ClearFilters()
+        {
+            ActiveFilter.Clear();
+            HasActiveFilters = false;
+            FilterSummary = "Aucun filtre";
+            BuildContentRows();
+        }
+
+        /// <summary>
+        /// Get image from cache service
+        /// </summary>
+        public ImageCacheService ImageCache => _imageCacheService;
 
         private void BuildContentRows()
         {
@@ -2836,19 +3098,71 @@ namespace StreamVision.ViewModels
 
         public void Dispose()
         {
-            _streamOptimizer.StopMonitoring();
-            _streamOptimizer.Dispose();
-            _channelPreloader?.Dispose();
-            _recordingService?.Dispose();
-            _bingeModeService.Dispose();
-            _sleepTimerService.Dispose();
-            _epgReminderService.Dispose();
-            _castService.Dispose();
-            _downloadService.Dispose();
-            _mediaPlayer?.Stop();
-            _mediaPlayer?.Dispose();
-            _libVLC?.Dispose();
-            _databaseService.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_isDisposed) return;
+
+            if (disposing)
+            {
+                // Unsubscribe from optimizer events
+                try
+                {
+                    _streamOptimizer.OnStatusChanged -= status => OptimizationStatus = status;
+                    _streamOptimizer.OnHealthStatusChanged -= HandlePlaybackHealthChange;
+                    _streamOptimizer.OnRestartRequired -= HandleStreamRestartRequired;
+                    _streamOptimizer.OnQualityDowngradeRequested -= HandleQualityDowngrade;
+                }
+                catch { }
+
+                // Unsubscribe from media player events
+                if (_mediaPlayer != null)
+                {
+                    try
+                    {
+                        _mediaPlayer.TimeChanged -= (s, e) => { };
+                        _mediaPlayer.LengthChanged -= (s, e) => { };
+                        _mediaPlayer.EndReached -= (s, e) => { };
+                        _mediaPlayer.Buffering -= (s, e) => { };
+                        _mediaPlayer.EncounteredError -= (s, e) => { };
+                        _mediaPlayer.Playing -= (s, e) => { };
+                    }
+                    catch { }
+                }
+
+                // Stop monitoring and services
+                try { _streamOptimizer.StopMonitoring(); } catch { }
+                try { _epgReminderService.Stop(); } catch { }
+
+                // Dispose all services in order
+                try { _streamOptimizer.Dispose(); } catch { }
+                try { _channelPreloader?.Dispose(); } catch { }
+                try { _recordingService?.Dispose(); } catch { }
+                try { _bingeModeService.Dispose(); } catch { }
+                try { _sleepTimerService.Dispose(); } catch { }
+                try { _epgReminderService.Dispose(); } catch { }
+                try { _castService.Dispose(); } catch { }
+                try { _downloadService.Dispose(); } catch { }
+
+                // Stop and dispose media player
+                try { _mediaPlayer?.Stop(); } catch { }
+                try { _mediaPlayer?.Dispose(); } catch { }
+                try { _libVLC?.Dispose(); } catch { }
+
+                // Dispose all other services that implement IDisposable
+                try { _databaseService.Dispose(); } catch { }
+                try { _m3uParser.Dispose(); } catch { }
+                try { _xtreamService.Dispose(); } catch { }
+                try { _epgService.Dispose(); } catch { }
+                try { _imageCacheService.Dispose(); } catch { }
+                // Note: _stalkerService, _tmdbService, _recommendationEngine, _audioNormalizer
+                // don't implement IDisposable - they use HttpClient internally but manage it themselves
+            }
+
+            _isDisposed = true;
         }
     }
 }

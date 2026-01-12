@@ -381,6 +381,65 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
+
+                            <!-- ═══════════════════════════════════════════════════════════════
+                                 SECTION CONTENU SIMILAIRE - Recommandations personnalisées
+                                 ═══════════════════════════════════════════════════════════════ -->
+                            <Border Background="#18181B" CornerRadius="16" Padding="24" x:Name="SimilarContentSection"
+                                    Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="CONTENU SIMILAIRE" Style="{StaticResource SectionTitle}"/>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                                  Padding="0,0,0,10">
+                                        <ItemsControl x:Name="SimilarContentList">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="140" Height="210" CornerRadius="12" Margin="0,0,12,0"
+                                                            Background="#27272A" Cursor="Hand"
+                                                            MouseLeftButtonUp="SimilarItem_Click" Tag="{Binding}">
+                                                        <Border.Effect>
+                                                            <DropShadowEffect Color="Black" BlurRadius="15" ShadowDepth="3" Opacity="0.3"/>
+                                                        </Border.Effect>
+                                                        <Grid>
+                                                            <Border CornerRadius="12">
+                                                                <Border.Background>
+                                                                    <ImageBrush ImageSource="{Binding DisplayImageUrl}" Stretch="UniformToFill"/>
+                                                                </Border.Background>
+                                                            </Border>
+                                                            <!-- Gradient Overlay -->
+                                                            <Border CornerRadius="12">
+                                                                <Border.Background>
+                                                                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="0,1">
+                                                                        <GradientStop Color="#00000000" Offset="0"/>
+                                                                        <GradientStop Color="#CC000000" Offset="1"/>
+                                                                    </LinearGradientBrush>
+                                                                </Border.Background>
+                                                            </Border>
+                                                            <!-- Title and Rating -->
+                                                            <StackPanel VerticalAlignment="Bottom" Margin="10">
+                                                                <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium"
+                                                                           Foreground="White" TextTrimming="CharacterEllipsis"
+                                                                           MaxWidth="120"/>
+                                                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                                                            Visibility="{Binding Rating, Converter={x:Static local:Converters.RatingToVisibility}}">
+                                                                    <TextBlock Text="★" Foreground="#FBBF24" FontSize="11"/>
+                                                                    <TextBlock Text="{Binding Rating, StringFormat={}{0:F1}}"
+                                                                               FontSize="11" Foreground="#A1A1AA" Margin="4,0,0,0"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Grid>
                 </ScrollViewer>

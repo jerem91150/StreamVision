@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
@@ -18,6 +19,7 @@ namespace StreamVision.Views
         private readonly HomeViewModel _viewModel;
         private readonly ContentAnalyzerService _contentAnalyzer;
         private readonly DatabaseService _databaseService;
+        private readonly RecommendationEngine _recommendationEngine;
         private int _userRating = 0;
         private string _qualityRating = "";
 
@@ -28,9 +30,11 @@ namespace StreamVision.Views
             _viewModel = viewModel;
             _contentAnalyzer = new ContentAnalyzerService();
             _databaseService = new DatabaseService();
+            _recommendationEngine = new RecommendationEngine(_databaseService);
 
             LoadContent();
             LoadUserRating();
+            LoadSimilarContentAsync();
         }
 
         private void LoadContent()
@@ -517,6 +521,60 @@ namespace StreamVision.Views
             {
                 DragMove();
             }
+        }
+
+        /// <summary>
+        /// Load similar content based on genres, director, cast, and rating
+        /// </summary>
+        private async void LoadSimilarContentAsync()
+        {
+            try
+            {
+                // Get all content from view model
+                var allContent = new List<MediaItem>();
+                allContent.AddRange(_viewModel.Movies);
+                allContent.AddRange(_viewModel.Series);
+
+                // Find similar content using the recommendation engine
+                var similarItems = _recommendationEngine.GetSimilarContent(_item, allContent, 10);
+
+                if (similarItems.Any())
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        SimilarContentList.ItemsSource = similarItems;
+                        SimilarContentSection.Visibility = Visibility.Visible;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading similar content: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handle click on similar content item
+        /// </summary>
+        private void SimilarItem_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is MediaItem item)
+            {
+                // Close current window and open new detail window for the selected item
+                var detailWindow = new MediaDetailWindow(item, _viewModel)
+                {
+                    Owner = this.Owner
+                };
+                Close();
+                detailWindow.ShowDialog();
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // Dispose services
+            try { _databaseService?.Dispose(); } catch { }
+            base.OnClosed(e);
         }
     }
 }

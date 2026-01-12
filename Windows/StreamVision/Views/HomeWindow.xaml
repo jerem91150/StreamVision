@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:StreamVision"
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+        xmlns:converters="clr-namespace:StreamVision.ValueConverters"
         Title="StreamVision"
         Height="900" Width="1600"
         MinHeight="720" MinWidth="1280"
@@ -13,6 +14,9 @@
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
+        <!-- Image Cache Converter -->
+        <converters:ImageCacheConverter x:Key="ImageCacheConverter"/>
+
         <!-- ═══════════════════════════════════════════════════════════════
              PALETTE PREMIUM - Style Apple/Futuriste Élégant
              ═══════════════════════════════════════════════════════════════ -->
@@ -70,6 +74,35 @@
             <GradientStop Color="#10FFFFFF" Offset="0"/>
             <GradientStop Color="#05FFFFFF" Offset="1"/>
         </LinearGradientBrush>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SKELETON LOADING - Shimmer Animation Premium
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- Skeleton Shimmer Gradient -->
+        <LinearGradientBrush x:Key="SkeletonGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#27272A" Offset="0"/>
+            <GradientStop Color="#3F3F46" Offset="0.5"/>
+            <GradientStop Color="#27272A" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Skeleton Card Style with Shimmer -->
+        <Style x:Key="SkeletonCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SkeletonGradient}"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        </Style>
+
+        <!-- Image Fade-In Animation Storyboard -->
+        <Storyboard x:Key="ImageFadeIn">
+            <DoubleAnimation
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
 
         <!-- ═══════════════════════════════════════════════════════════════
              BUTTON STYLES - Élégant et Minimaliste
@@ -293,6 +326,126 @@
             </Setter>
         </Style>
 
+        <!-- Sort ComboBox Style -->
+        <Style x:Key="SortComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="border" Background="{TemplateBinding Background}"
+                                    CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="&#xE8CB;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                               VerticalAlignment="Center" Margin="0,0,8,0"
+                                               Foreground="{StaticResource TextMutedBrush}"/>
+                                    <ContentPresenter Grid.Column="1" Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0"
+                                               Foreground="{StaticResource TextMutedBrush}"/>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom" AllowsTransparency="True">
+                                <Border Background="{StaticResource BgPanelBrush}" CornerRadius="10"
+                                        BorderThickness="1" BorderBrush="#30FFFFFF" Margin="0,4,0,0">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="4" Opacity="0.5"/>
+                                    </Border.Effect>
+                                    <ScrollViewer MaxHeight="300">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BgHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox Item Style -->
+        <Style x:Key="SortComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BgCardBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Filter Chip Style -->
+        <Style x:Key="FilterChip" TargetType="Border">
+            <Setter Property="Background" Value="#20FFFFFF"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Filter Toggle Button -->
+        <Style x:Key="FilterToggleBtn" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BgCardBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentBlueBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- BgHover Brush -->
+        <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource BgHover}"/>
+
         <!-- Search Box - Glass Effect -->
         <Style x:Key="SearchBox" TargetType="TextBox">
             <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
@@ -435,7 +588,30 @@
 
                         <!-- Search & Actions - Minimal -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBox Style="{StaticResource SearchBox}" Width="220"
+                            <!-- Sort Dropdown -->
+                            <ComboBox x:Name="SortComboBox" Style="{StaticResource SortComboBox}" Width="150"
+                                      SelectedIndex="0" SelectionChanged="SortComboBox_SelectionChanged"
+                                      ItemContainerStyle="{StaticResource SortComboBoxItem}">
+                                <ComboBoxItem Content="Recommandé" Tag="Default"/>
+                                <ComboBoxItem Content="Nom (A-Z)" Tag="NameAsc"/>
+                                <ComboBoxItem Content="Nom (Z-A)" Tag="NameDesc"/>
+                                <ComboBoxItem Content="Plus récent" Tag="DateNewest"/>
+                                <ComboBoxItem Content="Plus ancien" Tag="DateOldest"/>
+                                <ComboBoxItem Content="Meilleures notes" Tag="RatingHighest"/>
+                                <ComboBoxItem Content="Popularité" Tag="Popularity"/>
+                                <ComboBoxItem Content="Durée" Tag="Duration"/>
+                            </ComboBox>
+
+                            <!-- Filter Button -->
+                            <ToggleButton x:Name="FilterToggle" Style="{StaticResource FilterToggleBtn}" Margin="8,0,0,0"
+                                          ToolTip="Filtres avancés" Checked="FilterToggle_Checked" Unchecked="FilterToggle_Unchecked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Filtres" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ToggleButton>
+
+                            <TextBox Style="{StaticResource SearchBox}" Width="220" Margin="8,0,0,0"
                                      Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"/>
                             <Button Style="{StaticResource IconBtn}" Click="AddPlaylist_Click" Margin="12,0,0,0" ToolTip="Ajouter playlist">
                                 <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
@@ -457,6 +633,120 @@
                             </Button>
                         </StackPanel>
                     </Grid>
+                </Border>
+
+                <!-- Filter Panel (Collapsible) -->
+                <Border x:Name="FilterPanel" Grid.Row="2" Background="{StaticResource BgPanelBrush}"
+                        Padding="48,16" Visibility="Collapsed">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="15" ShadowDepth="4" Opacity="0.3"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <!-- Filter Row 1: Genres -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="Genres:" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                           Width="80" VerticalAlignment="Center"/>
+                                <ItemsControl x:Name="GenreFilters" ItemsSource="{Binding AvailableGenres}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource FilterToggleBtn}" Content="{Binding}"
+                                                          Margin="0,0,8,4" FontSize="12" Padding="12,6"
+                                                          Click="GenreFilter_Click" Tag="{Binding}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- Filter Row 2: Year and Rating -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="Année:" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                           Width="80" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="MinYearCombo" Style="{StaticResource SortComboBox}" Width="100"
+                                          ItemContainerStyle="{StaticResource SortComboBoxItem}"
+                                          SelectionChanged="YearFilter_Changed">
+                                    <ComboBoxItem Content="Depuis..." Tag=""/>
+                                    <ComboBoxItem Content="2024" Tag="2024"/>
+                                    <ComboBoxItem Content="2023" Tag="2023"/>
+                                    <ComboBoxItem Content="2020" Tag="2020"/>
+                                    <ComboBoxItem Content="2015" Tag="2015"/>
+                                    <ComboBoxItem Content="2010" Tag="2010"/>
+                                    <ComboBoxItem Content="2000" Tag="2000"/>
+                                    <ComboBoxItem Content="1990" Tag="1990"/>
+                                    <ComboBoxItem Content="1980" Tag="1980"/>
+                                </ComboBox>
+
+                                <TextBlock Text="Note min:" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="24,0,8,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="MinRatingCombo" Style="{StaticResource SortComboBox}" Width="100"
+                                          ItemContainerStyle="{StaticResource SortComboBoxItem}"
+                                          SelectionChanged="RatingFilter_Changed">
+                                    <ComboBoxItem Content="Toutes" Tag=""/>
+                                    <ComboBoxItem Content="★ 9+" Tag="9"/>
+                                    <ComboBoxItem Content="★ 8+" Tag="8"/>
+                                    <ComboBoxItem Content="★ 7+" Tag="7"/>
+                                    <ComboBoxItem Content="★ 6+" Tag="6"/>
+                                    <ComboBoxItem Content="★ 5+" Tag="5"/>
+                                </ComboBox>
+
+                                <TextBlock Text="Type:" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="24,0,8,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="ContentTypeCombo" Style="{StaticResource SortComboBox}" Width="120"
+                                          ItemContainerStyle="{StaticResource SortComboBoxItem}"
+                                          SelectionChanged="ContentTypeFilter_Changed">
+                                    <ComboBoxItem Content="Tous" Tag=""/>
+                                    <ComboBoxItem Content="Films" Tag="Movie"/>
+                                    <ComboBoxItem Content="Séries" Tag="Series"/>
+                                    <ComboBoxItem Content="TV Live" Tag="Live"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Active Filters Display -->
+                            <StackPanel x:Name="ActiveFiltersPanel" Orientation="Horizontal" Margin="0,8,0,0"
+                                        Visibility="{Binding ActiveFilter.HasActiveFilters, Converter={x:Static local:Converters.BoolToVisibility}}">
+                                <TextBlock Text="Filtres actifs:" FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                <TextBlock Text="{Binding ActiveFilter.Summary}" FontSize="12"
+                                           Foreground="{StaticResource AccentBlueBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Clear Filters Button -->
+                        <Button Grid.Column="1" Style="{StaticResource GhostBtn}" Click="ClearFilters_Click"
+                                VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE894;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Effacer" FontSize="13"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Enrichment Progress Bar -->
+                <Border Grid.Row="2" VerticalAlignment="Top" Margin="48,0"
+                        Visibility="{Binding IsEnrichingContent, Converter={x:Static local:Converters.BoolToVisibility}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
+                            <TextBlock Text="Enrichissement des métadonnées:" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock FontSize="11" Foreground="{StaticResource AccentBlueBrush}" Margin="8,0,0,0">
+                                <Run Text="{Binding EnrichmentProgress}"/><Run Text="/"/><Run Text="{Binding EnrichmentTotal}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <ProgressBar Value="{Binding EnrichmentProgress}" Maximum="{Binding EnrichmentTotal}"
+                                     Height="3" Background="#20FFFFFF" Foreground="{StaticResource AccentBlueBrush}"/>
+                    </StackPanel>
                 </Border>
 
                 <!-- Content - Full Width Vertical Scroll -->
@@ -540,7 +830,7 @@
                               Visibility="{Binding FeaturedItem, Converter={x:Static local:Converters.NotNullToVisibility}}">
                             <Border CornerRadius="24">
                                 <Border.Background>
-                                    <ImageBrush ImageSource="{Binding FeaturedItem.BackdropUrl}"
+                                    <ImageBrush ImageSource="{Binding FeaturedItem.BackdropUrl, Converter={StaticResource ImageCacheConverter}}"
                                                 Stretch="UniformToFill" Opacity="0.5"/>
                                 </Border.Background>
                             </Border>
@@ -642,7 +932,7 @@
                                 <Border Grid.Column="1" Width="200" Height="300" CornerRadius="16"
                                         VerticalAlignment="Center" Margin="48,0,0,0">
                                     <Border.Background>
-                                        <ImageBrush ImageSource="{Binding FeaturedItem.PosterUrl}" Stretch="UniformToFill"/>
+                                        <ImageBrush ImageSource="{Binding FeaturedItem.PosterUrl, Converter={StaticResource ImageCacheConverter}}" Stretch="UniformToFill"/>
                                     </Border.Background>
                                     <Border.Effect>
                                         <DropShadowEffect Color="#60A5FA" BlurRadius="40" ShadowDepth="0" Opacity="0.25"/>
@@ -683,7 +973,7 @@
                                                                 <!-- Background Image -->
                                                                 <Border CornerRadius="16">
                                                                     <Border.Background>
-                                                                        <ImageBrush ImageSource="{Binding DisplayImageUrl}"
+                                                                        <ImageBrush ImageSource="{Binding DisplayImageUrl, Converter={StaticResource ImageCacheConverter}}"
                                                                                     Stretch="UniformToFill"/>
                                                                     </Border.Background>
                                                                 </Border>
@@ -795,7 +1085,7 @@
                                                 <Grid>
                                                     <Border CornerRadius="16">
                                                         <Border.Background>
-                                                            <ImageBrush ImageSource="{Binding DisplayImageUrl}" Stretch="UniformToFill"/>
+                                                            <ImageBrush ImageSource="{Binding DisplayImageUrl, Converter={StaticResource ImageCacheConverter}}" Stretch="UniformToFill"/>
                                                         </Border.Background>
                                                     </Border>
                                                     <Border CornerRadius="16">
@@ -841,7 +1131,7 @@
                                                 <Grid>
                                                     <Border CornerRadius="14" Margin="20">
                                                         <Border.Background>
-                                                            <ImageBrush ImageSource="{Binding LogoUrl}" Stretch="Uniform"/>
+                                                            <ImageBrush ImageSource="{Binding LogoUrl, Converter={StaticResource ImageCacheConverter}}" Stretch="Uniform"/>
                                                         </Border.Background>
                                                     </Border>
                                                     <StackPanel VerticalAlignment="Bottom" Margin="10">

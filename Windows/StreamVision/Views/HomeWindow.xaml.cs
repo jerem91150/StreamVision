@@ -566,12 +566,190 @@ namespace StreamVision.Views
 
         #endregion
 
+        #region Sorting and Filtering
+
+        private void SortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Ignore during InitializeComponent when _viewModel is not yet set
+            if (_viewModel == null) return;
+
+            if (SortComboBox.SelectedItem is ComboBoxItem item && item.Tag is string sortTag)
+            {
+                var sortOption = sortTag switch
+                {
+                    "Default" => Models.SortOption.Default,
+                    "NameAsc" => Models.SortOption.NameAsc,
+                    "NameDesc" => Models.SortOption.NameDesc,
+                    "DateNewest" => Models.SortOption.DateNewest,
+                    "DateOldest" => Models.SortOption.DateOldest,
+                    "RatingHighest" => Models.SortOption.RatingHighest,
+                    "Popularity" => Models.SortOption.Popularity,
+                    "Duration" => Models.SortOption.Duration,
+                    _ => Models.SortOption.Default
+                };
+
+                _viewModel.SetSortOption(sortOption);
+                LogInfo($"Sort changed to: {sortOption}");
+            }
+        }
+
+        private void FilterToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            FilterPanel.Visibility = Visibility.Visible;
+            LogInfo("Filter panel shown");
+        }
+
+        private void FilterToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            FilterPanel.Visibility = Visibility.Collapsed;
+            LogInfo("Filter panel hidden");
+        }
+
+        private void GenreFilter_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Primitives.ToggleButton toggleButton && toggleButton.Tag is string genre)
+            {
+                if (toggleButton.IsChecked == true)
+                {
+                    _viewModel.ActiveFilter.Genres.Add(genre);
+                }
+                else
+                {
+                    _viewModel.ActiveFilter.Genres.Remove(genre);
+                }
+
+                _viewModel.ApplyFilter(_viewModel.ActiveFilter);
+                LogInfo($"Genre filter changed: {genre} = {toggleButton.IsChecked}");
+            }
+        }
+
+        private void YearFilter_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (MinYearCombo.SelectedItem is ComboBoxItem item && item.Tag is string yearStr)
+            {
+                if (int.TryParse(yearStr, out int year))
+                {
+                    _viewModel.ActiveFilter.MinYear = year;
+                }
+                else
+                {
+                    _viewModel.ActiveFilter.MinYear = null;
+                }
+
+                _viewModel.ApplyFilter(_viewModel.ActiveFilter);
+                LogInfo($"Year filter changed: {yearStr}");
+            }
+        }
+
+        private void RatingFilter_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (MinRatingCombo.SelectedItem is ComboBoxItem item && item.Tag is string ratingStr)
+            {
+                if (double.TryParse(ratingStr, out double rating))
+                {
+                    _viewModel.ActiveFilter.MinRating = rating;
+                }
+                else
+                {
+                    _viewModel.ActiveFilter.MinRating = null;
+                }
+
+                _viewModel.ApplyFilter(_viewModel.ActiveFilter);
+                LogInfo($"Rating filter changed: {ratingStr}");
+            }
+        }
+
+        private void ContentTypeFilter_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (ContentTypeCombo.SelectedItem is ComboBoxItem item && item.Tag is string typeStr)
+            {
+                _viewModel.ActiveFilter.Type = typeStr switch
+                {
+                    "Movie" => Models.ContentType.Movie,
+                    "Series" => Models.ContentType.Series,
+                    "Live" => Models.ContentType.Live,
+                    _ => null
+                };
+
+                _viewModel.ApplyFilter(_viewModel.ActiveFilter);
+                LogInfo($"Content type filter changed: {typeStr}");
+            }
+        }
+
+        private void ClearFilters_Click(object sender, RoutedEventArgs e)
+        {
+            // Reset all filter UI elements
+            MinYearCombo.SelectedIndex = 0;
+            MinRatingCombo.SelectedIndex = 0;
+            ContentTypeCombo.SelectedIndex = 0;
+
+            // Uncheck all genre toggle buttons
+            foreach (var item in GenreFilters.Items)
+            {
+                var container = GenreFilters.ItemContainerGenerator.ContainerFromItem(item);
+                if (container is ContentPresenter presenter)
+                {
+                    var toggleButton = FindVisualChild<System.Windows.Controls.Primitives.ToggleButton>(presenter);
+                    if (toggleButton != null)
+                    {
+                        toggleButton.IsChecked = false;
+                    }
+                }
+            }
+
+            _viewModel.ClearFilters();
+            LogInfo("All filters cleared");
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T result)
+                    return result;
+
+                var descendant = FindVisualChild<T>(child);
+                if (descendant != null)
+                    return descendant;
+            }
+            return null;
+        }
+
+        #endregion
+
         protected override void OnClosed(EventArgs e)
         {
             LogInfo($"OnClosed called - Window closing");
-            _notifyIcon?.Dispose();
+
+            try
+            {
+                // Clear VideoView media player reference before disposing
+                if (MiniVideoView != null)
+                {
+                    MiniVideoView.MediaPlayer = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogInfo($"Error clearing VideoView: {ex.Message}");
+            }
+
+            // Dispose notify icon
+            try
+            {
+                _notifyIcon?.Dispose();
+            }
+            catch { }
             _notifyIcon = null;
-            _viewModel.Dispose();
+
+            // Dispose view model
+            try
+            {
+                _viewModel?.Dispose();
+            }
+            catch { }
+
             base.OnClosed(e);
             LogInfo("OnClosed completed - Shutting down app");
             Application.Current.Shutdown();
