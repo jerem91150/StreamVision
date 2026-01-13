@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String
+  passwordHash String
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscription Subscription?
+  playlists    Playlist[]
+  favorites    Favorite[]
+  watchHistory WatchHistory[]
+  preferences  UserPreferences?
+  profiles     Profile[]
+  sessions     Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  deviceInfo   String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Profile {
+  id        String  @id @default(cuid())
+  userId    String
+  name      String
+  avatarUrl String?
+  isKid     Boolean @default(false)
+  pin       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  tier      String    @default("free")
+  status    String    @default("active")
+  expiresAt DateTime?
+  stripeId  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Playlist {
+  id             String    @id @default(cuid())
+  userId         String
+  name           String
+  type           String
+  url            String?
+  xtreamServer   String?
+  xtreamUsername String?
+  xtreamPassword String?
+  isActive       Boolean   @default(true)
+  lastSync       DateTime?
+  createdAt      DateTime  @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channels Channel[]
+}
+
+model Channel {
+  id         String  @id @default(cuid())
+  playlistId String
+  name       String
+  logoUrl    String?
+  streamUrl  String
+  groupTitle String?
+  epgId      String?
+  number     Int?
+
+  playlist     Playlist       @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  favorites    Favorite[]
+  watchHistory WatchHistory[]
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  channelId String?
+  vodId     String?
+  vodType   String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}
+
+model WatchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  channelId String?
+  vodId     String?
+  vodType   String?
+  progress  Int      @default(0)
+  duration  Int?
+  watchedAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}
+
+model UserPreferences {
+  id                 String  @id @default(cuid())
+  userId             String  @unique
+  preferredLanguages String  @default("French")
+  showMovies         Boolean @default(true)
+  showSeries         Boolean @default(true)
+  showLiveTV         Boolean @default(true)
+  showAnime          Boolean @default(true)
+  animePreferSubbed  Boolean @default(true)
+  preferredGenres    String?
+  preferredSports    String?
+  autoplay           Boolean @default(true)
+  defaultQuality     String  @default("auto")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
