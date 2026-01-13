@@ -1,35 +1,44 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using StreamVision.Models;
+using StreamVision.Services;
 
 namespace StreamVision.Views
 {
     public partial class OnboardingWindow : Window
     {
         private int _currentStep = 1;
+        private const int TotalSteps = 7;
+
         private readonly ContentPreferences _preferences = new();
+        private readonly UserAccount _userAccount = new();
+        private readonly DatabaseService _databaseService = new();
+
         private readonly HashSet<string> _selectedLanguages = new() { "French" };
         private readonly HashSet<string> _selectedContentTypes = new() { "Movies", "Series", "Live" };
         private bool _showAnime = true;
-        private string _animeVersionPreference = "VOSTFR"; // VOSTFR, VF, or Both
+        private string _animeVersionPreference = "VOSTFR";
+        private PlaylistType _selectedPlaylistType = PlaylistType.M3U;
 
         public ContentPreferences Preferences => _preferences;
+        public UserAccount UserAccount => _userAccount;
 
         public OnboardingWindow()
         {
             InitializeComponent();
             UpdateLanguageCards();
             UpdateContentTypeCards();
+            UpdatePlaylistTypeCards();
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
-            // Default preferences if closing early
             _preferences.OnboardingCompleted = true;
             DialogResult = true;
             Close();
@@ -37,13 +46,25 @@ namespace StreamVision.Views
 
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentStep < 5)
+            // Validation for step 2 (profile)
+            if (_currentStep == 2)
+            {
+                if (string.IsNullOrWhiteSpace(UsernameTextBox.Text))
+                {
+                    MessageBox.Show("Veuillez entrer un nom d'utilisateur", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                _userAccount.Username = UsernameTextBox.Text.Trim();
+                _userAccount.Email = EmailTextBox.Text.Trim();
+            }
+
+            if (_currentStep < TotalSteps)
             {
                 _currentStep++;
                 UpdateStepVisibility();
                 UpdateStepDots();
 
-                if (_currentStep == 5)
+                if (_currentStep == TotalSteps)
                 {
                     UpdateSummary();
                 }
@@ -60,13 +81,100 @@ namespace StreamVision.Views
             }
         }
 
+        private void PlaylistType_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is string type)
+            {
+                _selectedPlaylistType = type == "M3U" ? PlaylistType.M3U : PlaylistType.Xtream;
+                UpdatePlaylistTypeCards();
+            }
+        }
+
+        private void UpdatePlaylistTypeCards()
+        {
+            UpdateCard(M3UTypeCard, _selectedPlaylistType == PlaylistType.M3U);
+            UpdateCard(XtreamTypeCard, _selectedPlaylistType == PlaylistType.Xtream);
+
+            // Update text colors
+            var m3uTextBlock = (M3UTypeCard.Child as StackPanel)?.Children[0] as TextBlock;
+            var xtreamTextBlock = (XtreamTypeCard.Child as StackPanel)?.Children[0] as TextBlock;
+
+            if (m3uTextBlock != null)
+                m3uTextBlock.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
+                    _selectedPlaylistType == PlaylistType.M3U ? "#60A5FA" : "#A1A1AA"));
+
+            if (xtreamTextBlock != null)
+                xtreamTextBlock.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
+                    _selectedPlaylistType == PlaylistType.Xtream ? "#60A5FA" : "#A1A1AA"));
+
+            // Show/hide fields
+            M3UFieldsPanel.Visibility = _selectedPlaylistType == PlaylistType.M3U ? Visibility.Visible : Visibility.Collapsed;
+            XtreamFieldsPanel.Visibility = _selectedPlaylistType == PlaylistType.Xtream ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private async void ValidatePlaylist_Click(object sender, RoutedEventArgs e)
+        {
+            PlaylistErrorText.Text = "";
+
+            if (_selectedPlaylistType == PlaylistType.M3U)
+            {
+                var url = PlaylistUrlTextBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    PlaylistErrorText.Text = "Veuillez entrer l'URL de votre playlist";
+                    return;
+                }
+                if (!url.StartsWith("http://") && !url.StartsWith("https://"))
+                {
+                    PlaylistErrorText.Text = "L'URL doit commencer par http:// ou https://";
+                    return;
+                }
+
+                _userAccount.PlaylistType = PlaylistType.M3U;
+                _userAccount.PlaylistUrl = url;
+            }
+            else
+            {
+                var server = XtreamServerTextBox.Text.Trim();
+                var username = XtreamUsernameTextBox.Text.Trim();
+                var password = XtreamPasswordBox.Password;
+
+                if (string.IsNullOrWhiteSpace(server))
+                {
+                    PlaylistErrorText.Text = "Veuillez entrer l'adresse du serveur";
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    PlaylistErrorText.Text = "Veuillez entrer votre nom d'utilisateur";
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    PlaylistErrorText.Text = "Veuillez entrer votre mot de passe";
+                    return;
+                }
+
+                _userAccount.PlaylistType = PlaylistType.Xtream;
+                _userAccount.XtreamServer = server;
+                _userAccount.XtreamUsername = username;
+                _userAccount.XtreamPassword = password;
+            }
+
+            _userAccount.IsConfigured = true;
+
+            // Move to next step
+            _currentStep++;
+            UpdateStepVisibility();
+            UpdateStepDots();
+        }
+
         private void Language_Click(object sender, MouseButtonEventArgs e)
         {
             if (sender is Border border && border.Tag is string language)
             {
                 if (_selectedLanguages.Contains(language))
                 {
-                    // Don't allow deselecting all languages
                     if (_selectedLanguages.Count > 1)
                     {
                         _selectedLanguages.Remove(language);
@@ -87,7 +195,6 @@ namespace StreamVision.Views
             {
                 if (_selectedContentTypes.Contains(contentType))
                 {
-                    // Don't allow deselecting all content types
                     if (_selectedContentTypes.Count > 1)
                     {
                         _selectedContentTypes.Remove(contentType);
@@ -156,7 +263,6 @@ namespace StreamVision.Views
                 UpdateCard(AnimeVF, _animeVersionPreference == "VF");
                 UpdateCard(AnimeBoth, _animeVersionPreference == "Both");
 
-                // Update text colors for version cards
                 UpdateAnimeVersionCardColors(AnimeVOSTFR, _animeVersionPreference == "VOSTFR");
                 UpdateAnimeVersionCardColors(AnimeVF, _animeVersionPreference == "VF");
                 UpdateAnimeVersionCardColors(AnimeBoth, _animeVersionPreference == "Both");
@@ -178,7 +284,6 @@ namespace StreamVision.Views
             if (isSelected)
             {
                 card.Style = (Style)FindResource("SelectedCard");
-                // Update icon color
                 var stackPanel = card.Child as StackPanel;
                 if (stackPanel?.Children[0] is TextBlock textBlock)
                 {
@@ -211,6 +316,8 @@ namespace StreamVision.Views
             Step3Panel.Visibility = _currentStep == 3 ? Visibility.Visible : Visibility.Collapsed;
             Step4Panel.Visibility = _currentStep == 4 ? Visibility.Visible : Visibility.Collapsed;
             Step5Panel.Visibility = _currentStep == 5 ? Visibility.Visible : Visibility.Collapsed;
+            Step6Panel.Visibility = _currentStep == 6 ? Visibility.Visible : Visibility.Collapsed;
+            Step7Panel.Visibility = _currentStep == 7 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void UpdateStepDots()
@@ -223,86 +330,87 @@ namespace StreamVision.Views
             Step3Dot.Fill = _currentStep >= 3 ? activeColor : inactiveColor;
             Step4Dot.Fill = _currentStep >= 4 ? activeColor : inactiveColor;
             Step5Dot.Fill = _currentStep >= 5 ? activeColor : inactiveColor;
+            Step6Dot.Fill = _currentStep >= 6 ? activeColor : inactiveColor;
+            Step7Dot.Fill = _currentStep >= 7 ? activeColor : inactiveColor;
         }
 
         private void UpdateSummary()
         {
-            // Build language summary
             var langNames = new Dictionary<string, string>
             {
-                { "French", "Français" },
+                { "French", "Francais" },
                 { "English", "English" },
-                { "Spanish", "Español" },
+                { "Spanish", "Espanol" },
                 { "German", "Deutsch" },
                 { "Italian", "Italiano" },
-                { "Portuguese", "Português" },
+                { "Portuguese", "Portugues" },
                 { "Arabic", "العربية" },
-                { "Turkish", "Türkçe" }
+                { "Turkish", "Turkce" }
             };
 
             var selectedLangNames = _selectedLanguages.Select(l => langNames.GetValueOrDefault(l, l));
             LangSummary.Text = $"Langues : {string.Join(", ", selectedLangNames)}";
 
-            // Build content type summary
             var contentNames = new List<string>();
             if (_selectedContentTypes.Contains("Movies")) contentNames.Add("Films");
-            if (_selectedContentTypes.Contains("Series")) contentNames.Add("Séries");
+            if (_selectedContentTypes.Contains("Series")) contentNames.Add("Series");
             if (_selectedContentTypes.Contains("Live")) contentNames.Add("TV en direct");
             ContentSummary.Text = $"Contenu : {string.Join(", ", contentNames)}";
 
-            // Build anime summary
             if (_showAnime)
             {
                 AnimeSummaryPanel.Visibility = Visibility.Visible;
                 var versionText = _animeVersionPreference switch
                 {
-                    "VOSTFR" => "VOSTFR préféré",
-                    "VF" => "VF préféré",
+                    "VOSTFR" => "VOSTFR prefere",
+                    "VF" => "VF prefere",
                     "Both" => "VOSTFR et VF",
-                    _ => "Activé"
+                    _ => "Active"
                 };
-                AnimeSummary.Text = $"Animés : {versionText}";
+                AnimeSummary.Text = $"Animes : {versionText}";
             }
             else
             {
                 AnimeSummaryPanel.Visibility = Visibility.Collapsed;
             }
 
-            // Update summary text
-            if (_selectedLanguages.Count == 1 && _selectedLanguages.Contains("French"))
-            {
-                SummaryText.Text = "Vous ne verrez que du contenu en français";
-            }
-            else if (_selectedLanguages.Count > 1)
-            {
-                SummaryText.Text = $"Contenu en {_selectedLanguages.Count} langues";
-            }
+            SummaryText.Text = $"Bienvenue {_userAccount.Username} !";
         }
 
-        private void Finish_Click(object sender, RoutedEventArgs e)
+        private async void Finish_Click(object sender, RoutedEventArgs e)
         {
-            // Save preferences
-            _preferences.PreferredLanguages = _selectedLanguages.ToList();
-            _preferences.ShowMovies = _selectedContentTypes.Contains("Movies");
-            _preferences.ShowSeries = _selectedContentTypes.Contains("Series");
-            _preferences.ShowLiveTV = _selectedContentTypes.Contains("Live");
+            try
+            {
+                await _databaseService.InitializeAsync();
 
-            // Anime preferences
-            _preferences.ShowAnime = _showAnime;
-            _preferences.AnimePreferSubbed = _animeVersionPreference == "VOSTFR" || _animeVersionPreference == "Both";
-            _preferences.AnimePreferDubbed = _animeVersionPreference == "VF" || _animeVersionPreference == "Both";
+                // Save user account
+                await _databaseService.SaveUserAccountAsync(_userAccount);
 
-            _preferences.OnboardingCompleted = true;
-            _preferences.UpdatedAt = DateTime.Now;
+                // Save preferences
+                _preferences.PreferredLanguages = _selectedLanguages.ToList();
+                _preferences.ShowMovies = _selectedContentTypes.Contains("Movies");
+                _preferences.ShowSeries = _selectedContentTypes.Contains("Series");
+                _preferences.ShowLiveTV = _selectedContentTypes.Contains("Live");
+                _preferences.ShowAnime = _showAnime;
+                _preferences.AnimePreferSubbed = _animeVersionPreference == "VOSTFR" || _animeVersionPreference == "Both";
+                _preferences.AnimePreferDubbed = _animeVersionPreference == "VF" || _animeVersionPreference == "Both";
+                _preferences.OnboardingCompleted = true;
+                _preferences.UpdatedAt = DateTime.Now;
 
-            DialogResult = true;
-            Close();
+                await _databaseService.SaveUserPreferencesAsync(_preferences);
+
+                DialogResult = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors de la sauvegarde: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
-            // Allow window dragging
             if (e.ButtonState == MouseButtonState.Pressed)
             {
                 DragMove();

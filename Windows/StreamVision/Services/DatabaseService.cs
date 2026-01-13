@@ -104,10 +104,42 @@ namespace StreamVision.Services
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_userratings_media ON UserRatings(MediaId);
+
+                CREATE TABLE IF NOT EXISTS UserAccounts (
+                    Id TEXT PRIMARY KEY,
+                    Username TEXT NOT NULL,
+                    Email TEXT,
+                    AvatarUrl TEXT,
+                    PlaylistUrl TEXT,
+                    XtreamUsername TEXT,
+                    XtreamPassword TEXT,
+                    XtreamServer TEXT,
+                    PlaylistType INTEGER DEFAULT 0,
+                    IsConfigured INTEGER DEFAULT 0,
+                    CreatedAt TEXT,
+                    LastLoginAt TEXT
+                );
             ";
 
             using var cmd = new SQLiteCommand(sql, _connection);
             await cmd.ExecuteNonQueryAsync();
+
+            // Add PreferredSports column if it doesn't exist (safe migration)
+            await TryAddColumnAsync("UserPreferences", "PreferredSports", "TEXT DEFAULT '[]'");
+        }
+
+        private async Task TryAddColumnAsync(string table, string column, string definition)
+        {
+            try
+            {
+                var sql = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+                using var cmd = new SQLiteCommand(sql, _connection);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SQLiteException)
+            {
+                // Column already exists, ignore
+            }
         }
 
         // Playlist Sources
@@ -403,6 +435,7 @@ namespace StreamVision.Services
                     AnimePreferDubbed = GetInt32Safe(reader, "AnimePreferDubbed", 0) == 1,
                     PreferredGenres = ParseJsonList(reader["PreferredGenres"]?.ToString()),
                     ExcludedGenres = ParseJsonList(reader["ExcludedGenres"]?.ToString()),
+                    PreferredSports = ParseJsonList(GetStringSafe(reader, "PreferredSports")),
                     AdultContentEnabled = Convert.ToInt32(reader["AdultContentEnabled"]) == 1,
                     KidsMode = Convert.ToInt32(reader["KidsMode"]) == 1,
                     OnboardingCompleted = Convert.ToInt32(reader["OnboardingCompleted"]) == 1,
@@ -418,8 +451,8 @@ namespace StreamVision.Services
         {
             var sql = @"
                 INSERT OR REPLACE INTO UserPreferences
-                (Id, PreferredLanguages, ShowMovies, ShowSeries, ShowLiveTV, ShowAnime, AnimePreferSubbed, AnimePreferDubbed, PreferredGenres, ExcludedGenres, AdultContentEnabled, KidsMode, OnboardingCompleted, CreatedAt, UpdatedAt)
-                VALUES (@Id, @PreferredLanguages, @ShowMovies, @ShowSeries, @ShowLiveTV, @ShowAnime, @AnimePreferSubbed, @AnimePreferDubbed, @PreferredGenres, @ExcludedGenres, @AdultContentEnabled, @KidsMode, @OnboardingCompleted, @CreatedAt, @UpdatedAt)";
+                (Id, PreferredLanguages, ShowMovies, ShowSeries, ShowLiveTV, ShowAnime, AnimePreferSubbed, AnimePreferDubbed, PreferredGenres, ExcludedGenres, PreferredSports, AdultContentEnabled, KidsMode, OnboardingCompleted, CreatedAt, UpdatedAt)
+                VALUES (@Id, @PreferredLanguages, @ShowMovies, @ShowSeries, @ShowLiveTV, @ShowAnime, @AnimePreferSubbed, @AnimePreferDubbed, @PreferredGenres, @ExcludedGenres, @PreferredSports, @AdultContentEnabled, @KidsMode, @OnboardingCompleted, @CreatedAt, @UpdatedAt)";
 
             using var cmd = new SQLiteCommand(sql, _connection);
             cmd.Parameters.AddWithValue("@Id", prefs.Id);
@@ -432,11 +465,65 @@ namespace StreamVision.Services
             cmd.Parameters.AddWithValue("@AnimePreferDubbed", prefs.AnimePreferDubbed ? 1 : 0);
             cmd.Parameters.AddWithValue("@PreferredGenres", ToJsonList(prefs.PreferredGenres));
             cmd.Parameters.AddWithValue("@ExcludedGenres", ToJsonList(prefs.ExcludedGenres));
+            cmd.Parameters.AddWithValue("@PreferredSports", ToJsonList(prefs.PreferredSports));
             cmd.Parameters.AddWithValue("@AdultContentEnabled", prefs.AdultContentEnabled ? 1 : 0);
             cmd.Parameters.AddWithValue("@KidsMode", prefs.KidsMode ? 1 : 0);
             cmd.Parameters.AddWithValue("@OnboardingCompleted", prefs.OnboardingCompleted ? 1 : 0);
             cmd.Parameters.AddWithValue("@CreatedAt", prefs.CreatedAt.ToString("o"));
             cmd.Parameters.AddWithValue("@UpdatedAt", prefs.UpdatedAt.ToString("o"));
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // User Account
+        public async Task<UserAccount?> GetUserAccountAsync()
+        {
+            var sql = "SELECT * FROM UserAccounts LIMIT 1";
+            using var cmd = new SQLiteCommand(sql, _connection);
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserAccount
+                {
+                    Id = reader["Id"].ToString() ?? "",
+                    Username = reader["Username"].ToString() ?? "",
+                    Email = reader["Email"]?.ToString() ?? "",
+                    AvatarUrl = reader["AvatarUrl"]?.ToString(),
+                    PlaylistUrl = reader["PlaylistUrl"]?.ToString(),
+                    XtreamUsername = reader["XtreamUsername"]?.ToString(),
+                    XtreamPassword = reader["XtreamPassword"]?.ToString(),
+                    XtreamServer = reader["XtreamServer"]?.ToString(),
+                    PlaylistType = (PlaylistType)Convert.ToInt32(reader["PlaylistType"]),
+                    IsConfigured = Convert.ToInt32(reader["IsConfigured"]) == 1,
+                    CreatedAt = DateTime.TryParse(reader["CreatedAt"]?.ToString(), out var created) ? created : DateTime.Now,
+                    LastLoginAt = DateTime.TryParse(reader["LastLoginAt"]?.ToString(), out var lastLogin) ? lastLogin : DateTime.Now
+                };
+            }
+
+            return null;
+        }
+
+        public async Task SaveUserAccountAsync(UserAccount account)
+        {
+            var sql = @"
+                INSERT OR REPLACE INTO UserAccounts
+                (Id, Username, Email, AvatarUrl, PlaylistUrl, XtreamUsername, XtreamPassword, XtreamServer, PlaylistType, IsConfigured, CreatedAt, LastLoginAt)
+                VALUES (@Id, @Username, @Email, @AvatarUrl, @PlaylistUrl, @XtreamUsername, @XtreamPassword, @XtreamServer, @PlaylistType, @IsConfigured, @CreatedAt, @LastLoginAt)";
+
+            using var cmd = new SQLiteCommand(sql, _connection);
+            cmd.Parameters.AddWithValue("@Id", account.Id);
+            cmd.Parameters.AddWithValue("@Username", account.Username);
+            cmd.Parameters.AddWithValue("@Email", account.Email ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AvatarUrl", account.AvatarUrl ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@PlaylistUrl", account.PlaylistUrl ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@XtreamUsername", account.XtreamUsername ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@XtreamPassword", account.XtreamPassword ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@XtreamServer", account.XtreamServer ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@PlaylistType", (int)account.PlaylistType);
+            cmd.Parameters.AddWithValue("@IsConfigured", account.IsConfigured ? 1 : 0);
+            cmd.Parameters.AddWithValue("@CreatedAt", account.CreatedAt.ToString("o"));
+            cmd.Parameters.AddWithValue("@LastLoginAt", account.LastLoginAt.ToString("o"));
 
             await cmd.ExecuteNonQueryAsync();
         }
@@ -517,6 +604,20 @@ namespace StreamVision.Services
             catch
             {
                 return defaultValue;
+            }
+        }
+
+        private static string? GetStringSafe(System.Data.Common.DbDataReader reader, string columnName)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(columnName);
+                if (reader.IsDBNull(ordinal)) return null;
+                return reader[ordinal]?.ToString();
+            }
+            catch
+            {
+                return null;
             }
         }
 

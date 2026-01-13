@@ -27,6 +27,9 @@ namespace StreamVision.Models
         public List<string> PreferredGenres { get; set; } = new();
         public List<string> ExcludedGenres { get; set; } = new();
 
+        // Sports preferences
+        public List<string> PreferredSports { get; set; } = new();
+
         // Content filtering
         public bool AdultContentEnabled { get; set; } = false;
         public bool KidsMode { get; set; } = false;
@@ -106,6 +109,84 @@ namespace StreamVision.Models
             Id = id;
             DisplayName = displayName;
             Code = code;
+        }
+    }
+
+    /// <summary>
+    /// Available sports for preferences
+    /// </summary>
+    public static class AvailableSports
+    {
+        public static readonly List<SportOption> All = new()
+        {
+            new("Football", "Football", "soccer"),
+            new("Basketball", "Basketball", "basketball"),
+            new("Tennis", "Tennis", "tennis"),
+            new("F1", "Formule 1", "f1"),
+            new("MotoGP", "MotoGP", "motogp"),
+            new("Rugby", "Rugby", "rugby"),
+            new("Boxing", "Boxe / MMA", "boxing"),
+            new("Cycling", "Cyclisme", "cycling"),
+            new("Golf", "Golf", "golf"),
+            new("Hockey", "Hockey", "hockey"),
+            new("American Football", "Football Am\u00e9ricain", "nfl"),
+            new("Baseball", "Baseball", "baseball")
+        };
+    }
+
+    public class SportOption
+    {
+        public string Id { get; set; }
+        public string DisplayName { get; set; }
+        public string Icon { get; set; }
+        public bool IsSelected { get; set; }
+
+        public SportOption(string id, string displayName, string icon)
+        {
+            Id = id;
+            DisplayName = displayName;
+            Icon = icon;
+        }
+    }
+
+    /// <summary>
+    /// Available genres for movies/series preferences
+    /// </summary>
+    public static class AvailableGenres
+    {
+        public static readonly List<GenreOption> All = new()
+        {
+            new("Action", "Action", "action"),
+            new("Comedy", "Com\u00e9die", "comedy"),
+            new("Drama", "Drame", "drama"),
+            new("Horror", "Horreur", "horror"),
+            new("SciFi", "Science-Fiction", "scifi"),
+            new("Thriller", "Thriller", "thriller"),
+            new("Romance", "Romance", "romance"),
+            new("Animation", "Animation", "animation"),
+            new("Documentary", "Documentaire", "documentary"),
+            new("Crime", "Policier", "crime"),
+            new("Fantasy", "Fantastique", "fantasy"),
+            new("War", "Guerre", "war"),
+            new("Western", "Western", "western"),
+            new("Musical", "Musical", "musical"),
+            new("Biography", "Biographie", "biography"),
+            new("History", "Histoire", "history")
+        };
+    }
+
+    public class GenreOption
+    {
+        public string Id { get; set; }
+        public string DisplayName { get; set; }
+        public string Icon { get; set; }
+        public bool IsSelected { get; set; }
+
+        public GenreOption(string id, string displayName, string icon)
+        {
+            Id = id;
+            DisplayName = displayName;
+            Icon = icon;
         }
     }
 }

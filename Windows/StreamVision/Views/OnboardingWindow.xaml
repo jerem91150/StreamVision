@@ -107,6 +107,8 @@
                 <Ellipse x:Name="Step3Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
                 <Ellipse x:Name="Step4Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
                 <Ellipse x:Name="Step5Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
+                <Ellipse x:Name="Step6Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
+                <Ellipse x:Name="Step7Dot" Width="8" Height="8" Fill="#3F3F46" Margin="4,0"/>
             </StackPanel>
 
             <!-- Content Area -->
@@ -143,8 +145,114 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Step 2: Language Selection -->
+                <!-- Step 2: Profile Creation -->
                 <Grid x:Name="Step2Panel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Comment vous appelez-vous ?"
+                                   FontSize="32" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Creez votre profil StreamVision"
+                                   FontSize="16" Foreground="#A1A1AA" Margin="0,12,0,0"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" MinWidth="400">
+                        <TextBlock Text="Nom d'utilisateur" FontSize="14" Foreground="#A1A1AA" Margin="0,0,0,8"/>
+                        <TextBox x:Name="UsernameTextBox" Style="{StaticResource ModernTextBox}"
+                                 FontSize="16" Padding="16,14"/>
+
+                        <TextBlock Text="Email (optionnel)" FontSize="14" Foreground="#A1A1AA" Margin="0,24,0,8"/>
+                        <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBox}"
+                                 FontSize="16" Padding="16,14"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource SkipButton}" Content="Retour" Click="Back_Click" Margin="0,0,24,0"/>
+                        <Button Style="{StaticResource ContinueButton}" Content="Continuer" Click="Next_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 3: Playlist Setup -->
+                <Grid x:Name="Step3Panel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Configurez votre playlist"
+                                   FontSize="32" FontWeight="Light" Foreground="#FAFAFA"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Comment souhaitez-vous vous connecter ?"
+                                   FontSize="16" Foreground="#A1A1AA" Margin="0,12,0,0"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <!-- Playlist Type Selection -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,30">
+                            <Border x:Name="M3UTypeCard" Style="{StaticResource SelectedCard}" Margin="8"
+                                    MouseDown="PlaylistType_Click" Tag="M3U" MinWidth="200">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="M3U" FontSize="28" FontWeight="Bold" Foreground="#60A5FA" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="URL de playlist" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border x:Name="XtreamTypeCard" Style="{StaticResource SelectionCard}" Margin="8"
+                                    MouseDown="PlaylistType_Click" Tag="Xtream" MinWidth="200">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="Xtream" FontSize="28" FontWeight="Bold" Foreground="#A1A1AA" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Serveur + identifiants" FontSize="14" Foreground="#FAFAFA" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- M3U Fields -->
+                        <StackPanel x:Name="M3UFieldsPanel" Visibility="Visible" MinWidth="500">
+                            <TextBlock Text="URL de la playlist M3U" FontSize="14" Foreground="#A1A1AA" Margin="0,0,0,8"/>
+                            <TextBox x:Name="PlaylistUrlTextBox" Style="{StaticResource ModernTextBox}"
+                                     FontSize="14" Padding="16,14"/>
+                            <TextBlock Text="Exemple: http://provider.com/get.php?username=xxx&amp;password=xxx&amp;type=m3u_plus"
+                                       FontSize="11" Foreground="#71717A" Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                        <!-- Xtream Fields -->
+                        <StackPanel x:Name="XtreamFieldsPanel" Visibility="Collapsed" MinWidth="500">
+                            <TextBlock Text="Adresse du serveur" FontSize="14" Foreground="#A1A1AA" Margin="0,0,0,8"/>
+                            <TextBox x:Name="XtreamServerTextBox" Style="{StaticResource ModernTextBox}"
+                                     FontSize="14" Padding="16,14"/>
+
+                            <TextBlock Text="Nom d'utilisateur" FontSize="14" Foreground="#A1A1AA" Margin="0,20,0,8"/>
+                            <TextBox x:Name="XtreamUsernameTextBox" Style="{StaticResource ModernTextBox}"
+                                     FontSize="14" Padding="16,14"/>
+
+                            <TextBlock Text="Mot de passe" FontSize="14" Foreground="#A1A1AA" Margin="0,20,0,8"/>
+                            <PasswordBox x:Name="XtreamPasswordBox"
+                                         Background="#18181B" Foreground="#FAFAFA"
+                                         BorderBrush="#27272A" BorderThickness="1"
+                                         FontSize="14" Padding="16,14"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="PlaylistErrorText" Text="" FontSize="13" Foreground="#F87171"
+                                   HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource SkipButton}" Content="Retour" Click="Back_Click" Margin="0,0,24,0"/>
+                        <Button Style="{StaticResource ContinueButton}" Content="Continuer" Click="ValidatePlaylist_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 4: Language Selection -->
+                <Grid x:Name="Step4Panel" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -225,8 +333,8 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Step 3: Content Type Selection -->
-                <Grid x:Name="Step3Panel" Visibility="Collapsed">
+                <!-- Step 5: Content Type Selection -->
+                <Grid x:Name="Step5Panel" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -287,8 +395,8 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Step 4: Anime Preferences -->
-                <Grid x:Name="Step4Panel" Visibility="Collapsed">
+                <!-- Step 6: Anime Preferences -->
+                <Grid x:Name="Step6Panel" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -361,8 +469,8 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Step 5: Confirmation -->
-                <Grid x:Name="Step5Panel" Visibility="Collapsed">
+                <!-- Step 7: Confirmation -->
+                <Grid x:Name="Step7Panel" Visibility="Collapsed">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <!-- Success Icon -->
                         <Border Width="100" Height="100" CornerRadius="50" Background="#1A4D3E" Margin="0,0,0,40">

@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
+using StreamVision.Services;
+using StreamVision.Views;
 
 namespace StreamVision
 {
@@ -11,7 +13,7 @@ namespace StreamVision
         private const int MaxErrorsBeforeRestart = 5;
         private static readonly object _logLock = new();
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             // Log startup
             LogInfo("App starting...");
@@ -67,6 +69,10 @@ namespace StreamVision
 
                 LogInfo("Exception handlers set up (silent mode)");
                 base.OnStartup(e);
+
+                // Check if onboarding is needed
+                await CheckAndShowOnboardingAsync();
+
                 LogInfo("OnStartup completed, ShutdownMode=" + ShutdownMode);
             }
             catch (Exception ex)
@@ -79,6 +85,64 @@ namespace StreamVision
         {
             LogInfo($"OnExit called - ExitCode: {e.ApplicationExitCode}");
             base.OnExit(e);
+        }
+
+        private async Task CheckAndShowOnboardingAsync()
+        {
+            try
+            {
+                var databaseService = new DatabaseService();
+                await databaseService.InitializeAsync();
+
+                var preferences = await databaseService.GetUserPreferencesAsync();
+                var userAccount = await databaseService.GetUserAccountAsync();
+
+                // Show onboarding if:
+                // 1. No preferences exist, or onboarding not completed
+                // 2. No user account exists or not configured
+                bool needsOnboarding = preferences == null ||
+                                       !preferences.OnboardingCompleted ||
+                                       userAccount == null ||
+                                       !userAccount.IsConfigured;
+
+                if (needsOnboarding)
+                {
+                    LogInfo("Showing onboarding window");
+
+                    // Hide the auto-started HomeWindow
+                    if (MainWindow != null)
+                    {
+                        MainWindow.Hide();
+                    }
+
+                    var onboardingWindow = new OnboardingWindow();
+                    var result = onboardingWindow.ShowDialog();
+
+                    if (result == true)
+                    {
+                        LogInfo("Onboarding completed successfully");
+                        // Show the main window after onboarding
+                        if (MainWindow != null)
+                        {
+                            MainWindow.Show();
+                        }
+                    }
+                    else
+                    {
+                        LogInfo("Onboarding cancelled, shutting down");
+                        Shutdown();
+                    }
+                }
+                else
+                {
+                    LogInfo("Onboarding already completed, showing main window");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("Onboarding check failed", ex.ToString());
+                // Continue to main window even if check fails
+            }
         }
 
         private void RestartApplication()
