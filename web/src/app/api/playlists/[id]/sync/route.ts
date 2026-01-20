@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchAndParseM3U, groupSeriesByName } from '@/lib/parsers/m3u-parser';
 import { createXtreamService } from '@/lib/services/xtream-service';
+import { decryptPassword } from '@/lib/crypto';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -133,11 +134,16 @@ export async function POST(request: Request, { params }: RouteParams) {
         seriesCount = Object.keys(groupedSeries).length;
       }
     } else if (playlist.type === 'xtream' && playlist.xtreamServer && playlist.xtreamUsername && playlist.xtreamPassword) {
-      // Sync Xtream Codes playlist
+      // Sync Xtream Codes playlist - decrypt password first
+      const decryptedPassword = decryptPassword(playlist.xtreamPassword);
+      if (!decryptedPassword) {
+        return NextResponse.json({ error: 'Impossible de déchiffrer le mot de passe' }, { status: 500 });
+      }
+
       const xtream = createXtreamService(
         playlist.xtreamServer,
         playlist.xtreamUsername,
-        playlist.xtreamPassword
+        decryptedPassword
       );
 
       // Authenticate first

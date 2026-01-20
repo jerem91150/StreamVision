@@ -3,11 +3,23 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import prisma from './prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret';
+const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  console.warn('WARNING: JWT secrets not set. Using fallback (UNSAFE in production)');
+}
 
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
+
+// Cookie config for security
+export const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+};
 
 export interface JWTPayload {
   userId: string;
@@ -23,16 +35,16 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export function generateAccessToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+  return jwt.sign(payload, JWT_SECRET || 'dev-secret', { expiresIn: ACCESS_TOKEN_EXPIRY });
 }
 
 export function generateRefreshToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+  return jwt.sign(payload, JWT_REFRESH_SECRET || 'dev-refresh-secret', { expiresIn: REFRESH_TOKEN_EXPIRY });
 }
 
 export function verifyAccessToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, JWT_SECRET || 'dev-secret') as JWTPayload;
   } catch {
     return null;
   }
@@ -40,7 +52,7 @@ export function verifyAccessToken(token: string): JWTPayload | null {
 
 export function verifyRefreshToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
+    return jwt.verify(token, JWT_REFRESH_SECRET || 'dev-refresh-secret') as JWTPayload;
   } catch {
     return null;
   }
@@ -86,7 +98,7 @@ export async function refreshSession(refreshToken: string) {
     throw new Error('Session expired or not found');
   }
 
-  // Generate new tokens
+  // Generate new tokens (token rotation for security)
   const newPayload: JWTPayload = { userId: session.userId, email: session.user.email };
   const newAccessToken = generateAccessToken(newPayload);
   const newRefreshToken = generateRefreshToken(newPayload);
@@ -107,9 +119,13 @@ export async function refreshSession(refreshToken: string) {
 }
 
 export async function invalidateSession(refreshToken: string) {
-  await prisma.session.delete({
-    where: { refreshToken },
-  });
+  try {
+    await prisma.session.delete({
+      where: { refreshToken },
+    });
+  } catch {
+    // Session might already be deleted
+  }
 }
 
 export async function invalidateAllUserSessions(userId: string) {
@@ -119,19 +135,34 @@ export async function invalidateAllUserSessions(userId: string) {
 }
 
 export async function getCurrentUser(request: Request) {
+  // Try Authorization header first (API clients)
   const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const payload = verifyAccessToken(token);
+    if (payload) {
+      return getUserById(payload.userId);
+    }
   }
 
-  const token = authHeader.slice(7);
-  const payload = verifyAccessToken(token);
-  if (!payload) {
-    return null;
+  // Try cookies (browser)
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader) {
+    const accessToken = parseCookie(cookieHeader, 'accessToken');
+    if (accessToken) {
+      const payload = verifyAccessToken(accessToken);
+      if (payload) {
+        return getUserById(payload.userId);
+      }
+    }
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
+  return null;
+}
+
+async function getUserById(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
     select: {
       id: true,
       email: true,
@@ -140,11 +171,74 @@ export async function getCurrentUser(request: Request) {
       createdAt: true,
     },
   });
+}
 
-  return user;
+function parseCookie(cookieHeader: string, name: string): string | null {
+  const match = cookieHeader.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
 }
 
 export function getTokenFromCookies() {
   const cookieStore = cookies();
   return cookieStore.get('accessToken')?.value;
+}
+
+/**
+ * Set auth cookies in response
+ */
+export function setAuthCookies(
+  response: Response,
+  accessToken: string,
+  refreshToken: string
+): Response {
+  const headers = new Headers(response.headers);
+
+  // Access token cookie (short-lived)
+  headers.append(
+    'Set-Cookie',
+    `accessToken=${accessToken}; HttpOnly; ${
+      process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+    }SameSite=Lax; Path=/; Max-Age=${15 * 60}`
+  );
+
+  // Refresh token cookie (long-lived)
+  headers.append(
+    'Set-Cookie',
+    `refreshToken=${refreshToken}; HttpOnly; ${
+      process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+    }SameSite=Lax; Path=/api/auth; Max-Age=${7 * 24 * 60 * 60}`
+  );
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
+ * Clear auth cookies
+ */
+export function clearAuthCookies(response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  headers.append(
+    'Set-Cookie',
+    `accessToken=; HttpOnly; ${
+      process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+    }SameSite=Lax; Path=/; Max-Age=0`
+  );
+
+  headers.append(
+    'Set-Cookie',
+    `refreshToken=; HttpOnly; ${
+      process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+    }SameSite=Lax; Path=/api/auth; Max-Age=0`
+  );
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }

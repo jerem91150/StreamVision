@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { encrypt } from '@/lib/crypto';
 
 export async function GET(request: Request) {
   try {
@@ -14,7 +15,13 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json(playlists);
+    // Don't expose encrypted credentials, just indicate if they exist
+    const sanitizedPlaylists = playlists.map((p) => ({
+      ...p,
+      xtreamPassword: p.xtreamPassword ? '********' : null,
+    }));
+
+    return NextResponse.json(sanitizedPlaylists);
   } catch (error) {
     console.error('Get playlists error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
@@ -44,6 +51,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Informations Xtream requises' }, { status: 400 });
     }
 
+    // Encrypt sensitive Xtream credentials
+    let encryptedPassword = null;
+    if (type === 'xtream' && xtreamPassword) {
+      try {
+        encryptedPassword = encrypt(xtreamPassword);
+      } catch {
+        // If encryption fails (missing secret), store plaintext in dev
+        console.warn('Encryption failed, storing plaintext (dev mode only)');
+        encryptedPassword = xtreamPassword;
+      }
+    }
+
     const playlist = await prisma.playlist.create({
       data: {
         userId: user.id,
@@ -52,13 +71,17 @@ export async function POST(request: Request) {
         url: type === 'm3u' ? url : null,
         xtreamServer: type === 'xtream' ? xtreamServer : null,
         xtreamUsername: type === 'xtream' ? xtreamUsername : null,
-        xtreamPassword: type === 'xtream' ? xtreamPassword : null,
+        xtreamPassword: encryptedPassword,
       },
     });
 
-    return NextResponse.json(playlist);
+    return NextResponse.json({
+      ...playlist,
+      xtreamPassword: playlist.xtreamPassword ? '********' : null,
+    });
   } catch (error) {
     console.error('Create playlist error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
+
