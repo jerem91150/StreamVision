@@ -41,7 +41,8 @@ export async function POST(request: Request) {
         userId: user.id,
         OR: [
           { channelId: contentType === 'live' ? contentId : undefined },
-          { vodId: contentType !== 'live' ? contentId : undefined },
+          { vodItemId: contentType === 'movie' || contentType === 'series' ? contentId : undefined },
+          { episodeId: contentType === 'episode' ? contentId : undefined },
         ],
       },
       orderBy: { watchedAt: 'desc' },
@@ -63,8 +64,8 @@ export async function POST(request: Request) {
         data: {
           userId: user.id,
           channelId: contentType === 'live' ? contentId : null,
-          vodId: contentType !== 'live' ? contentId : null,
-          vodType: contentType !== 'live' ? contentType : null,
+          vodItemId: contentType === 'movie' || contentType === 'series' ? contentId : null,
+          episodeId: contentType === 'episode' ? contentId : null,
           progress,
           duration,
         },

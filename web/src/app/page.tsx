@@ -1,28 +1,28 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Tv, Film, Monitor, Smartphone, Globe, Check, Zap, Shield, Clock } from 'lucide-react';
+import { Play, Tv, Film, Monitor, Smartphone, Globe, Check, Zap, Shield, Clock, ListVideo, Layers, Settings, Heart } from 'lucide-react';
 
 const features = [
   {
+    icon: ListVideo,
+    title: 'Support M3U & Xtream',
+    description: 'Importez vos playlists M3U ou connectez-vous a votre serveur Xtream Codes',
+  },
+  {
     icon: Tv,
     title: 'TV en Direct',
-    description: 'Des milliers de chaines du monde entier en qualite HD',
+    description: 'Regardez vos chaines en direct avec un lecteur HLS performant',
   },
   {
     icon: Film,
-    title: 'Films & Series',
-    description: 'Catalogue VOD avec les derniers films et series',
+    title: 'VOD Integre',
+    description: 'Parcourez et lisez vos films et series depuis vos sources',
   },
   {
     icon: Clock,
-    title: 'Replay & Catchup',
-    description: 'Rattrapez vos programmes jusqu\'a 7 jours en arriere',
-  },
-  {
-    icon: Globe,
-    title: 'Multi-plateforme',
-    description: 'Regardez sur tous vos appareils, partout',
+    title: 'Guide TV (EPG)',
+    description: 'Programme TV integre avec support XMLTV pour toutes vos chaines',
   },
 ];
 
@@ -32,14 +32,14 @@ const plans = [
     name: 'Gratuit',
     price: 0,
     description: 'Pour decouvrir StreamVision',
-    features: ['100 chaines TV', 'Qualite SD', '1 appareil', 'Publicites'],
+    features: ['1 playlist', 'Lecteur de base', '1 appareil', 'Publicites'],
   },
   {
     id: 'basic',
     name: 'Basic',
     price: 2.99,
     description: 'Pour un usage personnel',
-    features: ['Toutes les chaines', 'Qualite HD', '2 appareils', 'Sans publicites', 'Replay 3 jours'],
+    features: ['3 playlists', 'Lecteur avance', '2 appareils', 'Sans publicites', 'EPG basique'],
     recommended: true,
   },
   {
@@ -48,12 +48,12 @@ const plans = [
     price: 4.99,
     description: 'Pour toute la famille',
     features: [
-      'Toutes les chaines',
-      'Qualite 4K',
+      'Playlists illimitees',
+      'Lecteur 4K HDR',
       '5 appareils',
       'Sans publicites',
-      'Replay 7 jours',
       'EPG complet',
+      'Favoris & historique',
       'Support prioritaire',
     ],
   },
@@ -89,12 +89,12 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
         <div className="max-w-7xl mx-auto text-center relative">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-            Votre univers de
-            <span className="text-primary"> streaming</span>
+            Le lecteur IPTV
+            <span className="text-primary"> nouvelle generation</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Regardez vos chaines TV preferees, films et series en streaming.
-            Interface moderne, EPG integre, disponible sur tous vos appareils.
+            Connectez vos sources IPTV (M3U, Xtream Codes) et profitez d&apos;une
+            interface moderne pour regarder TV, films et series sur tous vos appareils.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
@@ -137,16 +137,60 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* How it works */}
       <section className="py-20 px-4 bg-card/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-white mb-4">
-              Tout ce dont vous avez besoin
+              Comment ca marche ?
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Une experience de streaming complete avec toutes les fonctionnalites
-              que vous attendez et plus encore.
+              StreamVision est un lecteur multimedia. Vous apportez vos propres sources IPTV,
+              nous fournissons l&apos;interface.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-primary">1</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Creez un compte</h3>
+              <p className="text-muted-foreground text-sm">
+                Inscrivez-vous gratuitement en quelques secondes
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-primary">2</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Ajoutez vos sources</h3>
+              <p className="text-muted-foreground text-sm">
+                Importez votre playlist M3U ou connectez votre serveur Xtream
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-primary">3</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Profitez !</h3>
+              <p className="text-muted-foreground text-sm">
+                Regardez votre contenu avec notre interface moderne
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Fonctionnalites du lecteur
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Un lecteur IPTV complet avec toutes les fonctionnalites
+              que vous attendez d&apos;une application moderne.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -168,7 +212,7 @@ export default function LandingPage() {
       </section>
 
       {/* Why StreamVision */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-card/30">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -181,9 +225,9 @@ export default function LandingPage() {
                     <Zap className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Ultra rapide</h3>
+                    <h3 className="text-lg font-semibold text-white mb-1">Lecteur performant</h3>
                     <p className="text-muted-foreground">
-                      Chargement instantane, pas de buffering, streaming fluide en toute circonstance.
+                      Support HLS, gestion du buffer optimisee, streaming fluide meme sur connexion lente.
                     </p>
                   </div>
                 </div>
@@ -192,9 +236,9 @@ export default function LandingPage() {
                     <Shield className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Securise</h3>
+                    <h3 className="text-lg font-semibold text-white mb-1">Vos donnees protegees</h3>
                     <p className="text-muted-foreground">
-                      Vos donnees sont protegees. Connexion chiffree, pas de tracking.
+                      Vos identifiants de playlist sont chiffres. Nous ne stockons pas vos contenus.
                     </p>
                   </div>
                 </div>
@@ -203,9 +247,9 @@ export default function LandingPage() {
                     <Globe className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Synchronise</h3>
+                    <h3 className="text-lg font-semibold text-white mb-1">Multi-plateforme</h3>
                     <p className="text-muted-foreground">
-                      Vos favoris et historique synchronises sur tous vos appareils.
+                      Web, Android, iOS, macOS, Windows. Vos favoris synchronises partout.
                     </p>
                   </div>
                 </div>
@@ -214,20 +258,28 @@ export default function LandingPage() {
             <div className="bg-card rounded-2xl border border-border p-8">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-background rounded-xl p-6 text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">10K+</div>
-                  <div className="text-sm text-muted-foreground">Chaines</div>
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Layers className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-sm text-muted-foreground">Formats M3U, M3U8, Xtream</div>
                 </div>
                 <div className="bg-background rounded-xl p-6 text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">50K+</div>
-                  <div className="text-sm text-muted-foreground">Films & Series</div>
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Monitor className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-sm text-muted-foreground">Jusqu&apos;a 4K HDR</div>
                 </div>
                 <div className="bg-background rounded-xl p-6 text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">4K</div>
-                  <div className="text-sm text-muted-foreground">Qualite max</div>
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Settings className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-sm text-muted-foreground">EPG XMLTV integre</div>
                 </div>
                 <div className="bg-background rounded-xl p-6 text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">24/7</div>
-                  <div className="text-sm text-muted-foreground">Disponibilite</div>
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Heart className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-sm text-muted-foreground">Favoris & historique</div>
                 </div>
               </div>
             </div>
@@ -236,15 +288,15 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 bg-card/30">
+      <section id="pricing" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-white mb-4">
-              Choisissez votre offre
+              Choisissez votre formule
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Des tarifs simples et transparents. Commencez gratuitement,
-              evoluez selon vos besoins.
+              Des tarifs simples pour acceder a notre lecteur IPTV.
+              Vous gerez vos propres sources de contenu.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -298,15 +350,26 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Disclaimer */}
+      <section className="py-12 px-4 bg-card/30">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-white">Important :</strong> StreamVision est un lecteur multimedia.
+            Nous ne fournissons aucun contenu IPTV (chaines, films, series).
+            Vous etes responsable de la legalite des sources que vous utilisez avec notre application.
+          </p>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Pret a commencer ?
+            Pret a essayer ?
           </h2>
           <p className="text-muted-foreground mb-8">
-            Rejoignez des milliers d'utilisateurs satisfaits.
-            Inscrivez-vous gratuitement et profitez de StreamVision des maintenant.
+            Creez votre compte gratuitement et decouvrez StreamVision.
+            Ajoutez vos playlists et profitez d&apos;une experience de visionnage optimale.
           </p>
           <Link href="/register">
             <Button size="xl" className="gap-2">

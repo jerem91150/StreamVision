@@ -2,68 +2,123 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Play, Tv, Film, Clapperboard, Plus, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  Play,
+  Tv,
+  Film,
+  Clapperboard,
+  Plus,
+  ArrowRight,
+  Heart,
+  ListVideo,
+  Loader2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ContentRow } from '@/components/content/ContentRow';
+import { ContentCard } from '@/components/content/ContentCard';
+import { ChannelCard } from '@/components/content/ChannelCard';
 
-// Demo data - sera remplace par les vraies donnees de l'API
-const demoContent = {
-  continueWatching: [
-    { id: '1', title: 'Breaking Bad', type: 'series' as const, progress: 65, imageUrl: '' },
-    { id: '2', title: 'The Matrix', type: 'movie' as const, progress: 30, imageUrl: '' },
-  ],
-  recommendations: [
-    { id: '3', title: 'Stranger Things', type: 'series' as const, year: 2016, rating: 8.7, imageUrl: '' },
-    { id: '4', title: 'Inception', type: 'movie' as const, year: 2010, rating: 8.8, imageUrl: '' },
-    { id: '5', title: 'The Witcher', type: 'series' as const, year: 2019, rating: 8.2, imageUrl: '' },
-    { id: '6', title: 'Interstellar', type: 'movie' as const, year: 2014, rating: 8.7, imageUrl: '' },
-    { id: '7', title: 'Dark', type: 'series' as const, year: 2017, rating: 8.8, imageUrl: '' },
-  ],
-  trending: [
-    { id: '8', title: 'Dune: Part Two', type: 'movie' as const, year: 2024, rating: 8.5, imageUrl: '' },
-    { id: '9', title: 'The Last of Us', type: 'series' as const, year: 2023, rating: 8.9, imageUrl: '' },
-    { id: '10', title: 'Oppenheimer', type: 'movie' as const, year: 2023, rating: 8.6, imageUrl: '' },
-    { id: '11', title: 'House of the Dragon', type: 'series' as const, year: 2022, rating: 8.4, imageUrl: '' },
-  ],
-};
+interface DashboardStats {
+  playlists: number;
+  channels: number;
+  movies: number;
+  series: number;
+  favorites: number;
+}
+
+interface ContinueWatchingItem {
+  id: string;
+  type: 'live' | 'movie' | 'series' | 'episode';
+  name: string;
+  imageUrl: string | null;
+  progress: number;
+  seriesId?: string;
+}
+
+interface ChannelItem {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  groupTitle: string | null;
+  number: number | null;
+}
+
+interface VodItem {
+  id: string;
+  name: string;
+  posterUrl: string | null;
+  year: number | null;
+  rating: number | null;
+  genre: string | null;
+}
+
+interface DashboardData {
+  stats: DashboardStats;
+  continueWatching: ContinueWatchingItem[];
+  channels: ChannelItem[];
+  movies: VodItem[];
+  series: VodItem[];
+  hasContent: boolean;
+}
 
 export default function DashboardPage() {
-  const [hasPlaylist, setHasPlaylist] = useState(false);
+  const router = useRouter();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user has a playlist configured
-    const checkPlaylist = async () => {
+    const fetchDashboard = async () => {
       try {
         const accessToken = localStorage.getItem('accessToken');
-        const response = await fetch('/api/playlists', {
+        const response = await fetch('/api/dashboard', {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
+
+        if (response.status === 401) {
+          router.push('/login');
+          return;
+        }
+
         if (response.ok) {
-          const playlists = await response.json();
-          setHasPlaylist(playlists.length > 0);
+          const dashboardData = await response.json();
+          setData(dashboardData);
         }
       } catch (error) {
-        console.error('Failed to check playlists:', error);
+        console.error('Failed to fetch dashboard:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
-    checkPlaylist();
-  }, []);
+
+    fetchDashboard();
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      </div>
+    );
+  }
+
+  const hasPlaylist = data && data.stats.playlists > 0;
+  const hasContent = data?.hasContent || false;
 
   return (
     <div className="space-y-8">
       {/* Welcome / Setup Card */}
       {!hasPlaylist && (
-        <Card className="bg-gradient-to-r from-primary/10 via-card to-card border-primary/20">
+        <Card className="bg-gradient-to-r from-orange-500/10 via-gray-900 to-gray-900 border-orange-500/20">
           <CardHeader>
-            <CardTitle>Bienvenue sur StreamVision !</CardTitle>
+            <CardTitle className="text-white">Bienvenue sur StreamVision !</CardTitle>
             <CardDescription>
-              Ajoutez votre premiere playlist pour commencer a regarder du contenu.
+              Ajoutez votre première playlist pour commencer à regarder du contenu.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/settings/playlists">
-              <Button className="gap-2">
+              <Button className="gap-2 bg-orange-500 hover:bg-orange-600">
                 <Plus className="w-4 h-4" />
                 Ajouter une playlist
               </Button>
@@ -72,56 +127,97 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {/* Stats Cards */}
+      {data && hasContent && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4 text-center">
+              <ListVideo className="w-6 h-6 text-orange-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{data.stats.playlists}</p>
+              <p className="text-xs text-gray-400">Playlists</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4 text-center">
+              <Tv className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{data.stats.channels}</p>
+              <p className="text-xs text-gray-400">Chaînes</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4 text-center">
+              <Film className="w-6 h-6 text-orange-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{data.stats.movies}</p>
+              <p className="text-xs text-gray-400">Films</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4 text-center">
+              <Clapperboard className="w-6 h-6 text-green-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{data.stats.series}</p>
+              <p className="text-xs text-gray-400">Séries</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4 text-center">
+              <Heart className="w-6 h-6 text-red-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{data.stats.favorites}</p>
+              <p className="text-xs text-gray-400">Favoris</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Quick Access */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link href="/live">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+          <Card className="hover:border-orange-500/50 transition-colors cursor-pointer bg-gray-900 border-gray-800">
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Tv className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <Tv className="w-5 h-5 text-blue-400" />
               </div>
               <div>
                 <p className="font-medium text-white">TV en direct</p>
-                <p className="text-xs text-muted-foreground">Regarder</p>
+                <p className="text-xs text-gray-400">Regarder</p>
               </div>
             </CardContent>
           </Card>
         </Link>
         <Link href="/films">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+          <Card className="hover:border-orange-500/50 transition-colors cursor-pointer bg-gray-900 border-gray-800">
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Film className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
+                <Film className="w-5 h-5 text-orange-400" />
               </div>
               <div>
                 <p className="font-medium text-white">Films</p>
-                <p className="text-xs text-muted-foreground">Explorer</p>
+                <p className="text-xs text-gray-400">Explorer</p>
               </div>
             </CardContent>
           </Card>
         </Link>
         <Link href="/series">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+          <Card className="hover:border-orange-500/50 transition-colors cursor-pointer bg-gray-900 border-gray-800">
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Clapperboard className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                <Clapperboard className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <p className="font-medium text-white">Series</p>
-                <p className="text-xs text-muted-foreground">Decouvrir</p>
+                <p className="font-medium text-white">Séries</p>
+                <p className="text-xs text-gray-400">Découvrir</p>
               </div>
             </CardContent>
           </Card>
         </Link>
         <Link href="/epg">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+          <Card className="hover:border-orange-500/50 transition-colors cursor-pointer bg-gray-900 border-gray-800">
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Play className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                <Play className="w-5 h-5 text-purple-400" />
               </div>
               <div>
                 <p className="font-medium text-white">Guide TV</p>
-                <p className="text-xs text-muted-foreground">Programme</p>
+                <p className="text-xs text-gray-400">Programme</p>
               </div>
             </CardContent>
           </Card>
@@ -129,42 +225,139 @@ export default function DashboardPage() {
       </div>
 
       {/* Continue Watching */}
-      {demoContent.continueWatching.length > 0 && (
-        <ContentRow
-          title="Reprendre la lecture"
-          items={demoContent.continueWatching}
-          seeAllHref="/history"
-        />
+      {data && data.continueWatching.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Reprendre la lecture</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {data.continueWatching.map((item) => (
+              <ContentCard
+                key={`${item.type}-${item.id}`}
+                id={item.seriesId || item.id}
+                title={item.name}
+                imageUrl={item.imageUrl || undefined}
+                type={item.type === 'episode' ? 'series' : item.type === 'live' ? 'movie' : item.type}
+                progress={item.progress}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Recommendations */}
-      <ContentRow
-        title="Recommande pour vous"
-        items={demoContent.recommendations}
-      />
+      {/* Channels */}
+      {data && data.channels.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Chaînes TV</h2>
+            <Link href="/live" className="text-sm text-orange-400 hover:text-orange-300">
+              Voir tout →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {data.channels.slice(0, 6).map((channel) => (
+              <ChannelCard
+                key={channel.id}
+                id={channel.id}
+                name={channel.name}
+                logoUrl={channel.logoUrl || undefined}
+                number={channel.number || undefined}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Trending */}
-      <ContentRow
-        title="Tendances"
-        items={demoContent.trending}
-      />
+      {/* Movies */}
+      {data && data.movies.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Films récents</h2>
+            <Link href="/films" className="text-sm text-orange-400 hover:text-orange-300">
+              Voir tout →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {data.movies.slice(0, 6).map((movie) => (
+              <ContentCard
+                key={movie.id}
+                id={movie.id}
+                title={movie.name}
+                imageUrl={movie.posterUrl || undefined}
+                type="movie"
+                year={movie.year || undefined}
+                rating={movie.rating || undefined}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Series */}
+      {data && data.series.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Séries récentes</h2>
+            <Link href="/series" className="text-sm text-orange-400 hover:text-orange-300">
+              Voir tout →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {data.series.slice(0, 6).map((serie) => (
+              <ContentCard
+                key={serie.id}
+                id={serie.id}
+                title={serie.name}
+                imageUrl={serie.posterUrl || undefined}
+                type="series"
+                year={serie.year || undefined}
+                rating={serie.rating || undefined}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Empty state if no content */}
+      {hasPlaylist && !hasContent && (
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="py-12 text-center">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Tv className="w-8 h-8 text-gray-500" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">
+              Aucun contenu synchronisé
+            </h3>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Vos playlists sont configurées mais n&apos;ont pas encore été synchronisées.
+              Synchronisez-les pour voir votre contenu.
+            </p>
+            <Link href="/settings/playlists">
+              <Button className="gap-2 bg-orange-500 hover:bg-orange-600">
+                Synchroniser mes playlists
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Empty state if no playlist */}
       {!hasPlaylist && (
-        <Card className="bg-card border-border">
+        <Card className="bg-gray-900 border-gray-800">
           <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 bg-card-hover rounded-full flex items-center justify-center mx-auto mb-4">
-              <Tv className="w-8 h-8 text-muted-foreground" />
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Tv className="w-8 h-8 text-gray-500" />
             </div>
             <h3 className="text-lg font-medium text-white mb-2">
-              Aucune playlist configuree
+              Aucune playlist configurée
             </h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
               Pour profiter de StreamVision, ajoutez votre playlist M3U ou
-              connectez-vous a votre serveur Xtream Codes.
+              connectez-vous à votre serveur Xtream Codes.
             </p>
             <Link href="/settings/playlists">
-              <Button className="gap-2">
+              <Button className="gap-2 bg-orange-500 hover:bg-orange-600">
                 <Plus className="w-4 h-4" />
                 Configurer ma playlist
                 <ArrowRight className="w-4 h-4" />

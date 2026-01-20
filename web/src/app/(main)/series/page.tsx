@@ -38,14 +38,18 @@ export default function SeriesPage() {
     const fetchSeries = async () => {
       try {
         const accessToken = localStorage.getItem('accessToken');
-        const response = await fetch('/api/vod/series', {
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('search', searchQuery);
+        if (selectedGenre !== 'Tous') params.set('genre', selectedGenre);
+
+        const response = await fetch(`/api/vod/series?${params.toString()}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (response.ok) {
           const data = await response.json();
-          setSeries(data);
-          setFilteredSeries(data);
+          setSeries(data.series || []);
+          setFilteredSeries(data.series || []);
         }
       } catch (error) {
         console.error('Failed to fetch series:', error);
@@ -55,25 +59,12 @@ export default function SeriesPage() {
     };
 
     fetchSeries();
-  }, []);
+  }, [searchQuery, selectedGenre]);
 
+  // Filtering is now handled server-side via API params
   useEffect(() => {
-    let result = series;
-
-    if (searchQuery) {
-      result = result.filter((s) =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (selectedGenre !== 'Tous') {
-      result = result.filter((s) =>
-        s.genre?.toLowerCase().includes(selectedGenre.toLowerCase())
-      );
-    }
-
-    setFilteredSeries(result);
-  }, [series, searchQuery, selectedGenre]);
+    setFilteredSeries(series);
+  }, [series]);
 
   return (
     <div className="space-y-6">

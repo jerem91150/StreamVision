@@ -67,53 +67,63 @@ model Playlist {
   xtreamServer   String?
   xtreamUsername String?
   xtreamPassword String?
+  epgUrl         String?
   isActive       Boolean   @default(true)
   lastSync       DateTime?
+  channelCount   Int       @default(0)
+  movieCount     Int       @default(0)
+  seriesCount    Int       @default(0)
   createdAt      DateTime  @default(now())
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   channels Channel[]
+  vodItems VodItem[]
 }
 
 model Channel {
-  id         String  @id @default(cuid())
-  playlistId String
-  name       String
-  logoUrl    String?
-  streamUrl  String
-  groupTitle String?
-  epgId      String?
-  number     Int?
+  id          String  @id @default(cuid())
+  playlistId  String
+  name        String
+  logoUrl     String?
+  streamUrl   String
+  groupTitle  String?
+  epgId       String?
+  number      Int?
+  catchupDays Int?
+  xtreamId    Int?
 
   playlist     Playlist       @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   favorites    Favorite[]
   watchHistory WatchHistory[]
+  epgPrograms  EpgProgram[]
 }
 
 model Favorite {
   id        String   @id @default(cuid())
   userId    String
   channelId String?
-  vodId     String?
-  vodType   String?
+  vodItemId String?
   createdAt DateTime @default(now())
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  vodItem VodItem? @relation(fields: [vodItemId], references: [id], onDelete: Cascade)
 }
 
 model WatchHistory {
   id        String   @id @default(cuid())
   userId    String
   channelId String?
-  vodId     String?
-  vodType   String?
+  vodItemId String?
+  episodeId String?
   progress  Int      @default(0)
   duration  Int?
   watchedAt DateTime @default(now())
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  vodItem VodItem? @relation(fields: [vodItemId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 }
 
 model UserPreferences {
@@ -131,4 +141,58 @@ model UserPreferences {
   defaultQuality     String  @default("auto")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VodItem {
+  id           String  @id @default(cuid())
+  playlistId   String
+  type         String  // movie | series
+  name         String
+  posterUrl    String?
+  backdropUrl  String?
+  plot         String?
+  genre        String?
+  year         Int?
+  rating       Float?
+  duration     Int?
+  streamUrl    String?
+  xtreamId     Int?
+  containerExt String?
+  createdAt    DateTime @default(now())
+
+  playlist     Playlist       @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  episodes     Episode[]
+  favorites    Favorite[]
+  watchHistory WatchHistory[]
+}
+
+model Episode {
+  id           String  @id @default(cuid())
+  vodItemId    String
+  seasonNum    Int
+  episodeNum   Int
+  name         String
+  plot         String?
+  streamUrl    String
+  duration     Int?
+  xtreamId     String?
+  containerExt String?
+
+  vodItem      VodItem        @relation(fields: [vodItemId], references: [id], onDelete: Cascade)
+  watchHistory WatchHistory[]
+}
+
+model EpgProgram {
+  id          String   @id @default(cuid())
+  channelId   String
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  category    String?
+  iconUrl     String?
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, startTime])
 }

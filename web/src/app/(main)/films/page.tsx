@@ -38,14 +38,18 @@ export default function FilmsPage() {
     const fetchMovies = async () => {
       try {
         const accessToken = localStorage.getItem('accessToken');
-        const response = await fetch('/api/vod/movies', {
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('search', searchQuery);
+        if (selectedGenre !== 'Tous') params.set('genre', selectedGenre);
+
+        const response = await fetch(`/api/vod/movies?${params.toString()}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (response.ok) {
           const data = await response.json();
-          setMovies(data);
-          setFilteredMovies(data);
+          setMovies(data.movies || []);
+          setFilteredMovies(data.movies || []);
         }
       } catch (error) {
         console.error('Failed to fetch movies:', error);
@@ -55,25 +59,12 @@ export default function FilmsPage() {
     };
 
     fetchMovies();
-  }, []);
+  }, [searchQuery, selectedGenre]);
 
+  // Filtering is now handled server-side via API params
   useEffect(() => {
-    let result = movies;
-
-    if (searchQuery) {
-      result = result.filter((movie) =>
-        movie.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (selectedGenre !== 'Tous') {
-      result = result.filter((movie) =>
-        movie.genre?.toLowerCase().includes(selectedGenre.toLowerCase())
-      );
-    }
-
-    setFilteredMovies(result);
-  }, [movies, searchQuery, selectedGenre]);
+    setFilteredMovies(movies);
+  }, [movies]);
 
   return (
     <div className="space-y-6">
