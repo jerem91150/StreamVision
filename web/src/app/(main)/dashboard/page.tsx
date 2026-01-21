@@ -111,7 +111,7 @@ export default function DashboardPage() {
       {!hasPlaylist && (
         <Card className="bg-gradient-to-r from-orange-500/10 via-gray-900 to-gray-900 border-orange-500/20">
           <CardHeader>
-            <CardTitle className="text-white">Bienvenue sur StreamVision !</CardTitle>
+            <CardTitle className="text-white">Bienvenue sur Visiora !</CardTitle>
             <CardDescription>
               Ajoutez votre première playlist pour commencer à regarder du contenu.
             </CardDescription>
@@ -353,7 +353,7 @@ export default function DashboardPage() {
               Aucune playlist configurée
             </h3>
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
-              Pour profiter de StreamVision, ajoutez votre playlist M3U ou
+              Pour profiter de Visiora, ajoutez votre playlist M3U ou
               connectez-vous à votre serveur Xtream Codes.
             </p>
             <Link href="/settings/playlists">

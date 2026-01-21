@@ -78,7 +78,7 @@ export default function RegisterPage() {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Creer un compte</CardTitle>
         <CardDescription>
-          Rejoignez StreamVision gratuitement
+          Rejoignez Visiora gratuitement
         </CardDescription>
       </CardHeader>
       <CardContent>

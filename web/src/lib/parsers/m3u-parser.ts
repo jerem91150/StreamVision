@@ -269,7 +269,7 @@ export async function parseM3U(content: string): Promise<M3UParseResult> {
 export async function fetchAndParseM3U(url: string): Promise<M3UParseResult> {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'StreamVision/1.0'
+      'User-Agent': 'Visiora/1.0'
     }
   });
 

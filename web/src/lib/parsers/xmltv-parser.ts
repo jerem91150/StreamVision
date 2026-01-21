@@ -130,7 +130,7 @@ export async function parseXmltv(xmlContent: string): Promise<XmltvParseResult> 
 export async function fetchAndParseXmltv(url: string): Promise<XmltvParseResult> {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'StreamVision/1.0',
+      'User-Agent': 'Visiora/1.0',
     },
   });
 

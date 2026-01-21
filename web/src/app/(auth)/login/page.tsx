@@ -54,7 +54,7 @@ export default function LoginPage() {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Connexion</CardTitle>
         <CardDescription>
-          Connectez-vous a votre compte StreamVision
+          Connectez-vous a votre compte Visiora
         </CardDescription>
       </CardHeader>
       <CardContent>

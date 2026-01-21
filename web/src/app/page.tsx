@@ -31,7 +31,7 @@ const plans = [
     id: 'free',
     name: 'Gratuit',
     price: 0,
-    description: 'Pour decouvrir StreamVision',
+    description: 'Pour decouvrir Visiora',
     features: ['1 playlist', 'Lecteur de base', '1 appareil', 'Publicites'],
   },
   {
@@ -70,7 +70,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                 <Play className="w-6 h-6 text-white" fill="white" />
               </div>
-              <span className="text-xl font-bold text-white">StreamVision</span>
+              <span className="text-xl font-bold text-white">Visiora</span>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/login">
@@ -118,7 +118,7 @@ export default function LandingPage() {
                   <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Play className="w-10 h-10 text-primary" />
                   </div>
-                  <p className="text-muted-foreground">Interface StreamVision</p>
+                  <p className="text-muted-foreground">Interface Visiora</p>
                 </div>
               </div>
             </div>
@@ -145,7 +145,7 @@ export default function LandingPage() {
               Comment ca marche ?
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              StreamVision est un lecteur multimedia. Vous apportez vos propres sources IPTV,
+              Visiora est un lecteur multimedia. Vous apportez vos propres sources IPTV,
               nous fournissons l&apos;interface.
             </p>
           </div>
@@ -211,13 +211,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Why StreamVision */}
+      {/* Why Visiora */}
       <section className="py-20 px-4 bg-card/30">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-white mb-6">
-                Pourquoi choisir StreamVision ?
+                Pourquoi choisir Visiora ?
               </h2>
               <div className="space-y-6">
                 <div className="flex gap-4">
@@ -354,7 +354,7 @@ export default function LandingPage() {
       <section className="py-12 px-4 bg-card/30">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-sm text-muted-foreground">
-            <strong className="text-white">Important :</strong> StreamVision est un lecteur multimedia.
+            <strong className="text-white">Important :</strong> Visiora est un lecteur multimedia.
             Nous ne fournissons aucun contenu IPTV (chaines, films, series).
             Vous etes responsable de la legalite des sources que vous utilisez avec notre application.
           </p>
@@ -368,7 +368,7 @@ export default function LandingPage() {
             Pret a essayer ?
           </h2>
           <p className="text-muted-foreground mb-8">
-            Creez votre compte gratuitement et decouvrez StreamVision.
+            Creez votre compte gratuitement et decouvrez Visiora.
             Ajoutez vos playlists et profitez d&apos;une experience de visionnage optimale.
           </p>
           <Link href="/register">
@@ -388,7 +388,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Play className="w-4 h-4 text-white" fill="white" />
               </div>
-              <span className="font-semibold text-white">StreamVision</span>
+              <span className="font-semibold text-white">Visiora</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <Link href="/terms" className="hover:text-white transition-colors">
@@ -402,7 +402,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 StreamVision. Tous droits reserves.
+              © 2024 Visiora. Tous droits reserves.
             </p>
           </div>
         </div>

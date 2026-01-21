@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'StreamVision - Votre univers de streaming',
+  title: 'Visiora - Votre univers de streaming',
   description: 'Regardez vos chaines TV, films et series preferes en streaming. Interface moderne, EPG integre, multi-plateforme.',
   keywords: ['IPTV', 'streaming', 'TV en direct', 'films', 'series', 'VOD'],
 };

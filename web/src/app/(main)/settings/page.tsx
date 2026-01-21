@@ -115,7 +115,7 @@ export default function SettingsPage() {
 
       {/* App version */}
       <div className="mt-8 text-center text-sm text-gray-500">
-        <p>StreamVision v0.1.0</p>
+        <p>Visiora v0.1.0</p>
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <Play className="w-6 h-6 text-white" fill="white" />
           </div>
-          <span className="text-xl font-bold text-white">StreamVision</span>
+          <span className="text-xl font-bold text-white">Visiora</span>
         </Link>
       </header>
 
@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Footer */}
       <footer className="p-6 text-center">
         <p className="text-sm text-muted-foreground">
-          © 2024 StreamVision. Tous droits reserves.
+          © 2024 Visiora. Tous droits reserves.
         </p>
       </footer>
     </div>
